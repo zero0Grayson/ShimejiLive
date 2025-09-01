@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="Windows-31J" ?>
+<project name="Shimeji-ee" basedir="." default="zip">
+
+	<property name="version" value="1.0.9" />
+
+	<target name="clean">
+		<delete dir="target" />
+		<mkdir dir="target" />
+	</target>
+
+	<target name="compile" depends="clean">
+		<mkdir dir="target/classes" />
+		<javac destdir="target/classes" release="21" debug="yes" optimize="yes" includeantruntime="false">
+			<src path="src"/>
+			<src path="src_win"/>
+			<classpath>
+				<fileset dir="lib" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<copy file="conf/logging.properties" todir="target/classes"/>
+		<copy todir="target/classes">
+			<fileset dir="conf">
+				<include name="language*.properties"/>
+				<include name="schema*.properties"/>
+			</fileset>
+		</copy>
+		<copy todir="target/classes/conf">
+			<fileset dir="conf">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="target/classes/img">
+			<fileset dir="img">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="target/classes">
+			<fileset dir="img">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		
+		<!-- Extract all library JAR files into target/classes -->
+		<unjar dest="target/classes">
+			<fileset dir="lib">
+				<include name="*.jar"/>
+			</fileset>
+		</unjar>
+		
+		<!-- Create executable JAR with embedded dependencies -->
+		<jar destfile="target/Shimeji-ee.jar" basedir="target/classes">
+			<manifest>
+				<attribute name="Main-Class" value="com.group_finity.mascot.Main"/>
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="zip" depends="jar">
+		<zip destfile="target/src.zip">
+			<fileset dir=".">
+				<include name="**/*" />
+				<exclude name="target/**/*" />
+				<exclude name="target" />
+				<exclude name="bin/**/*" />
+				<exclude name="bin" />
+				<exclude name=".settings/**" />
+				<exclude name=".settings" />
+				<exclude name=".classpath" />
+				<exclude name=".project" />
+				<exclude name="*.log" />
+			</fileset>
+		</zip>
+
+		<ant target="zip_package">
+			<property name="edition" value="Calm" />
+		</ant>
+		<ant target="zip_package">
+			<property name="edition" value="Professional" />
+		</ant>
+		<ant target="zip_package">
+			<property name="edition" value="Mischievous" />
+		</ant>
+	</target>
+
+	<!-- 添加运行目标，包含必要的 JVM 参数 -->
+	<target name="run" depends="jar">
+		<java jar="target/Shimeji-ee.jar" fork="true">
+			<jvmarg value="--enable-native-access=ALL-UNNAMED"/>
+			<jvmarg value="--add-opens"/>
+			<jvmarg value="java.base/java.lang=ALL-UNNAMED"/>
+			<jvmarg value="--add-opens"/>
+			<jvmarg value="java.desktop/sun.awt=ALL-UNNAMED"/>
+			<jvmarg value="--add-opens"/>
+			<jvmarg value="java.desktop/java.awt=ALL-UNNAMED"/>
+		</java>
+	</target>
+
+	<!-- 使用 jpackage 创建原生可执行文件 -->
+	<target name="jpackage" depends="jar">
+		<mkdir dir="target/jpackage" />
+		<delete dir="target/jpackage" />
+		<mkdir dir="target/jpackage" />
+		
+		<!-- 准备应用程序资源 -->
+		<mkdir dir="target/jpackage/input" />
+		<copy file="target/Shimeji-ee.jar" todir="target/jpackage/input" />
+		
+		<!-- 先创建应用程序镜像 -->
+		<exec executable="jpackage" dir="target/jpackage" failonerror="true">
+			<arg value="--input" />
+			<arg value="input" />
+			<arg value="--main-jar" />
+			<arg value="Shimeji-ee.jar" />
+			<arg value="--main-class" />
+			<arg value="com.group_finity.mascot.Main" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--icon" />
+			<arg value="../../img/icon.ico" />
+			<arg value="--type" />
+			<arg value="app-image" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--java-options" />
+			<arg value="--enable-native-access=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+		</exec>
+		
+		<!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+		<copy todir="target/jpackage/Shimeji-ee/conf">
+			<fileset dir="conf" />
+		</copy>
+		<copy todir="target/jpackage/Shimeji-ee/img">
+			<fileset dir="img" />
+		</copy>
+		
+		<!-- 然后创建 MSI 安装程序 -->
+		<exec executable="jpackage" dir="target/jpackage" failonerror="true">
+			<arg value="--app-image" />
+			<arg value="Shimeji-ee" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--type" />
+			<arg value="msi" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--win-menu" />
+			<arg value="--win-menu-group" />
+			<arg value="Games" />
+			<arg value="--win-shortcut" />
+		</exec>
+		
+		<!-- 将生成的安装程序移动到 target 根目录 -->
+		<move todir="target">
+			<fileset dir="target/jpackage">
+				<include name="*.exe" />
+				<include name="*.msi" />
+			</fileset>
+		</move>
+		
+		<echo message="Native executable created successfully!" />
+		<echo message="Output files are in the target directory." />
+	</target>
+
+	<!-- 创建便携版本（目录结构，不是安装程序） -->
+	<target name="jpackage-portable" depends="jar">
+		<mkdir dir="target/jpackage-portable" />
+		<delete dir="target/jpackage-portable" />
+		<mkdir dir="target/jpackage-portable" />
+		
+		<!-- 准备应用程序资源 -->
+		<mkdir dir="target/jpackage-portable/input" />
+		<copy file="target/Shimeji-ee.jar" todir="target/jpackage-portable/input" />
+		
+		<!-- 执行 jpackage 命令创建应用程序镜像 -->
+		<exec executable="jpackage" dir="target/jpackage-portable" failonerror="true">
+			<arg value="--input" />
+			<arg value="input" />
+			<arg value="--main-jar" />
+			<arg value="Shimeji-ee.jar" />
+			<arg value="--main-class" />
+			<arg value="com.group_finity.mascot.Main" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--icon" />
+			<arg value="../../img/icon.ico" />
+			<arg value="--type" />
+			<arg value="app-image" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--java-options" />
+			<arg value="--enable-native-access=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+		</exec>
+		
+		<!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+		<copy todir="target/jpackage-portable/Shimeji-ee/conf">
+			<fileset dir="conf" />
+		</copy>
+		<copy todir="target/jpackage-portable/Shimeji-ee/img">
+			<fileset dir="img" />
+		</copy>
+		
+		<!-- 创建便携版压缩包 -->
+		<zip destfile="target/Shimeji-ee_${version}_Portable.zip">
+			<fileset dir="target/jpackage-portable">
+				<include name="Shimeji-ee/**/*" />
+			</fileset>
+		</zip>
+		
+		<echo message="Portable version created successfully!" />
+		<echo message="Portable zip file: target/Shimeji-ee_${version}_Portable.zip" />
+	</target>
+
+	<target name="zip_package">
+		<zip destfile="target/Shimeji-ee_${version}_${edition}.zip">
+			<fileset dir="target">
+				<include name="Shimeji-ee.jar" />
+				<include name="src.zip" />
+			</fileset>
+			<mappedresources>
+				<fileset dir="conf">
+					<include name="${edition}Behavior.xml" />
+				</fileset>
+				<globmapper from="*.xml" to="conf/behaviors.xml" />
+			</mappedresources>
+			<fileset dir=".">
+				<include name="ShimejiHomePage.url" />
+				<include name="Shimeji-eeHomePage.url" />
+				<include name="originallicence.txt" />
+				<include name="originalreadme.txt" />
+				<include name="licence.txt" />
+				<include name="readme.txt" />
+				<include name="changelog.txt" />
+				<include name="img/**/*" />
+				<include name="conf/**/*" />
+				<exclude name="conf/behaviors.xml" />
+				<exclude name="conf/*Behavior.xml" />
+				<include name="lib/*" />
+			</fileset>
+		</zip>
+	</target>
+</project>

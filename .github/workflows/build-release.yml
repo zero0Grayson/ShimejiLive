@@ -1,0 +1,280 @@
+name: Auto Pre-Release Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    # Allow manual triggering
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build-jar:
+    runs-on: ubuntu-latest
+    outputs:
+      jar-artifact: ${{ steps.upload.outputs.artifact-id }}
+      build-success: ${{ steps.build.outputs.build_success }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Install Apache Ant
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ant
+
+      - name: Build JAR with Ant
+        id: build
+        run: |
+          echo "Building JAR using ant clean jar..."
+          if ant clean jar; then
+            echo "Build successful"
+            echo "build_success=true" >> $GITHUB_OUTPUT
+          
+            # Check if JAR file exists
+            if [ -f "target/Shimeji-ee.jar" ]; then
+              echo "JAR file created successfully: target/Shimeji-ee.jar"
+              JAR_SIZE=$(stat -c%s "target/Shimeji-ee.jar")
+              echo "JAR file size: $JAR_SIZE bytes"
+            else
+              echo "Error: JAR file not found after build"
+              echo "build_success=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "Build failed"
+            echo "build_success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload JAR artifact
+        id: upload
+        if: steps.build.outputs.build_success == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shimeji-jar
+          path: |
+            target/Shimeji-ee.jar
+            lib/
+            conf/
+            img/
+            *.txt
+            *.md
+            LICENSE
+            MANIFEST.MF
+          retention-days: 1
+
+  build-jpackage-windows:
+    needs: build-jar
+    if: needs.build-jar.outputs.build-success == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Install Apache Ant
+        run: |
+          choco install ant
+
+      - name: Install WiX Toolset
+        run: |
+          # Download and install WiX Toolset v3.14.1
+          $url = "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe"
+          $output = "$env:TEMP\wix314.exe"
+          Invoke-WebRequest -Uri $url -OutFile $output
+          Start-Process -FilePath $output -ArgumentList "/install", "/quiet", "/norestart" -Wait
+          # Add WiX to PATH
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" >> $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: shimeji-jar
+
+      - name: Build jpackage Windows packages
+        run: |
+          echo "Building Windows packages using jpackage..."
+          ant -f build-jpackage-windows.xml jpackage-windows-all
+          echo "Checking for generated files:"
+          dir target\*.msi
+          dir target\*.zip
+
+      - name: Upload Windows MSI installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-windows-msi
+          path: |
+            target/*.msi
+            target/*.exe
+          retention-days: 1
+          if-no-files-found: warn
+
+      - name: Upload Windows portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-windows-portable
+          path: target/Shimeji-ee_*_Portable.zip
+          retention-days: 1
+          if-no-files-found: warn
+
+  create-release:
+    needs: [build-jar, build-jpackage-windows]
+    runs-on: ubuntu-latest
+    if: needs.build-jar.outputs.build-success == 'true'
+
+    steps:
+      - name: Checkout code (for release notes)
+        uses: actions/checkout@v4
+
+      - name: Download all platform packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Shimeji-ee-*
+          merge-multiple: true
+
+      - name: Check for existing pre-release
+        id: check_prerelease
+        run: |
+          # Get existing pre-releases
+          PRERELEASE_COUNT=$(gh release list --limit 50 --json isPrerelease,tagName | jq '[.[] | select(.isPrerelease == true)] | length')
+          echo "prerelease_count=$PRERELEASE_COUNT" >> $GITHUB_OUTPUT
+          
+          if [ "$PRERELEASE_COUNT" -gt 0 ]; then
+            echo "Found $PRERELEASE_COUNT pre-release(s)"
+            PRERELEASE_TAG=$(gh release list --limit 50 --json isPrerelease,tagName | jq -r '[.[] | select(.isPrerelease == true)] | first | .tagName')
+            echo "prerelease_tag=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "No pre-releases found"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release info
+        id: release_info
+        run: |
+          # Generate timestamp for release
+          TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+          RELEASE_TAG="pre-release-$TIMESTAMP"
+          RELEASE_NAME="Pre-release Build $TIMESTAMP"
+          
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          
+          # Generate release notes
+          BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S UTC')
+          cat > release_notes.md << EOF
+          # Shimeji-ee jpackage Native Builds / Shimeji-ee jpackage 原生版本
+          
+          **Build Date / 构建日期:** $BUILD_TIME  
+          **Commit / 提交:** ${{ github.sha }}
+          
+          ## What's included / 包含内容:
+          
+          ### Native packages built with jpackage / 使用 jpackage 构建的原生包:
+          - **Shimeji-ee-windows-msi** - Windows MSI installer with embedded JRE / Windows MSI 安装程序，含嵌入式 JRE
+          - **Shimeji-ee-windows-portable** - Windows portable version with embedded JRE / Windows 便携版，含嵌入式 JRE
+          
+          ## Installation / 安装说明:
+          
+          ### Native packages / 原生包
+          
+          #### Windows (推荐使用)
+          1. **MSI Installer / MSI 安装程序**: Download and run the MSI file for system-wide installation
+             下载并运行 MSI 文件进行系统级安装
+          2. **Portable Version / 便携版**: Extract the portable zip and run Shimeji-ee.exe
+             解压便携版 zip 并运行 Shimeji-ee.exe
+          
+          **No Java installation required! All packages include embedded JRE 21.**
+          **无需安装 Java！所有包都包含嵌入式 JRE 21。**
+          
+          ## Technical Details / 技术详情:
+          - **JRE Version / JRE 版本**: OpenJDK 21 (embedded in native packages)
+          - **Build Tool / 构建工具**: jpackage (part of JDK)
+          - **Packaging / 打包方式**: Native application bundles with embedded runtime
+          - **File Size / 文件大小**: Larger than JAR-only due to embedded JRE, but no Java installation required
+          
+          ## Advantages of jpackage builds / jpackage 构建的优势:
+          - **Zero Java dependency / 零 Java 依赖**: No need to install Java separately
+          - **Native performance / 原生性能**: Better startup time and system integration
+          - **Easy distribution / 简易分发**: Single file/folder contains everything needed
+          - **System integration / 系统集成**: Proper application registration (Windows) and .app bundle (macOS)
+          
+          ## Notes / 注意事项:
+          - jpackage builds are larger due to embedded JRE but provide better user experience
+            jpackage 构建由于嵌入式 JRE 而较大，但提供更好的用户体验
+          - Windows MSI installer provides proper system integration and uninstall support
+            Windows MSI 安装程序提供适当的系统集成和卸载支持
+          - All native packages include the required JVM parameters for proper operation
+            所有原生包都包含正确运行所需的 JVM 参数
+          
+          This is an automated pre-release build generated at $BUILD_TIME using jpackage technology.
+          
+          这是在 $BUILD_TIME 使用 jpackage 技术自动生成的预发布版本。
+          
+          ---
+          *This release was automatically generated from commit ${{ github.sha }} / 此版本由提交 ${{ github.sha }} 自动生成*
+          EOF
+
+      - name: Delete existing pre-release
+        if: steps.check_prerelease.outputs.prerelease_count > 0
+        run: |
+          echo "Deleting existing pre-release: ${{ steps.check_prerelease.outputs.prerelease_tag }}"
+          gh release delete "${{ steps.check_prerelease.outputs.prerelease_tag }}" --yes
+          
+          # Also delete the tag
+          git push --delete origin "${{ steps.check_prerelease.outputs.prerelease_tag }}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create new pre-release
+        run: |
+          echo "Creating new pre-release: ${{ steps.release_info.outputs.release_tag }}"
+          
+          # List all downloaded files for debugging
+          echo "Available files:"
+          ls -la
+          
+          # Create release with files that exist
+          FILES_TO_UPLOAD=""
+          
+          # Check for MSI files
+          if ls *.msi 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *.msi"
+          fi
+          
+          # Check for portable ZIP files
+          if ls *Portable*.zip 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *Portable*.zip"
+          fi
+          
+          echo "Files to upload: $FILES_TO_UPLOAD"
+          
+          if [ -z "$FILES_TO_UPLOAD" ]; then
+            echo "Warning: No MSI or portable files found to upload"
+            exit 1
+          fi
+          
+          gh release create "${{ steps.release_info.outputs.release_tag }}" \
+            --title "${{ steps.release_info.outputs.release_name }}" \
+            --notes-file release_notes.md \
+            --prerelease \
+            $FILES_TO_UPLOAD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

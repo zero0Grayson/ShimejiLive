@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Shimeji-ee-Windows" basedir="." default="jpackage-windows-all">
+
+	<property name="version" value="2.0.0" />
+
+	<!-- 创建所有 Windows 包（portable 和 MSI） -->
+	<target name="jpackage-windows-all" depends="jpackage-windows-portable,jpackage-windows-msi">
+		<echo message="All Windows packages created successfully!" />
+	</target>
+
+	<!-- 使用 jpackage 创建 Windows 便携版 -->
+	<target name="jpackage-windows-portable">
+		<mkdir dir="target/jpackage-windows-portable" />
+		<delete dir="target/jpackage-windows-portable" />
+		<mkdir dir="target/jpackage-windows-portable" />
+
+		<!-- 准备应用程序资源 -->
+		<mkdir dir="target/jpackage-windows-portable/input" />
+		<copy file="target/Shimeji-ee.jar" todir="target/jpackage-windows-portable/input" />
+
+		<!-- 执行 jpackage 命令创建应用程序镜像 -->
+		<exec executable="jpackage" dir="target/jpackage-windows-portable" failonerror="true">
+			<arg value="--input" />
+			<arg value="input" />
+			<arg value="--main-jar" />
+			<arg value="Shimeji-ee.jar" />
+			<arg value="--main-class" />
+			<arg value="com.group_finity.mascot.Main" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--icon" />
+			<arg value="../../img/icon.ico" />
+			<arg value="--type" />
+			<arg value="app-image" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--java-options" />
+			<arg value="-Xmx512M" />
+			<arg value="--java-options" />
+			<arg value="-Xms128M" />
+			<arg value="--java-options" />
+			<arg value="-XX:ReservedCodeCacheSize=128M" />
+			<arg value="--java-options" />
+			<arg value="-XX:+UseG1GC" />
+			<arg value="--java-options" />
+			<arg value="-XX:MaxGCPauseMillis=50" />
+			<arg value="--java-options" />
+			<arg value="-XX:+UseStringDeduplication" />
+			<arg value="--java-options" />
+			<arg value="--enable-native-access=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+		</exec>
+
+		<!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+		<copy todir="target/jpackage-windows-portable/Shimeji-ee/conf">
+			<fileset dir="conf" />
+		</copy>
+		<copy todir="target/jpackage-windows-portable/Shimeji-ee/img">
+			<fileset dir="img" />
+		</copy>
+
+		<!-- 创建便携版压缩包 -->
+		<zip destfile="target/Shimeji-ee_${version}_Portable.zip">
+			<fileset dir="target/jpackage-windows-portable">
+				<include name="Shimeji-ee/**/*" />
+			</fileset>
+		</zip>
+
+		<echo message="Windows portable version created successfully!" />
+		<echo message="Portable zip file: target/Shimeji-ee_${version}_Portable.zip" />
+	</target>
+
+	<!-- 使用 jpackage 创建 Windows MSI 安装程序 -->
+	<target name="jpackage-windows-msi">
+		<mkdir dir="target/jpackage-windows-msi" />
+		<delete dir="target/jpackage-windows-msi" />
+		<mkdir dir="target/jpackage-windows-msi" />
+
+		<!-- 准备应用程序资源 -->
+		<mkdir dir="target/jpackage-windows-msi/input" />
+		<copy file="target/Shimeji-ee.jar" todir="target/jpackage-windows-msi/input" />
+
+		<!-- 先创建应用程序镜像 -->
+		<exec executable="jpackage" dir="target/jpackage-windows-msi" failonerror="true">
+			<arg value="--input" />
+			<arg value="input" />
+			<arg value="--main-jar" />
+			<arg value="Shimeji-ee.jar" />
+			<arg value="--main-class" />
+			<arg value="com.group_finity.mascot.Main" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--icon" />
+			<arg value="../../img/icon.ico" />
+			<arg value="--type" />
+			<arg value="app-image" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--java-options" />
+			<arg value="-Xmx512M" />
+			<arg value="--java-options" />
+			<arg value="-Xms128M" />
+			<arg value="--java-options" />
+			<arg value="-XX:ReservedCodeCacheSize=128M" />
+			<arg value="--java-options" />
+			<arg value="-XX:+UseG1GC" />
+			<arg value="--java-options" />
+			<arg value="-XX:MaxGCPauseMillis=50" />
+			<arg value="--java-options" />
+			<arg value="-XX:+UseStringDeduplication" />
+			<arg value="--java-options" />
+			<arg value="--enable-native-access=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
+			<arg value="--java-options" />
+			<arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+		</exec>
+
+		<!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+		<copy todir="target/jpackage-windows-msi/Shimeji-ee/conf">
+			<fileset dir="conf" />
+		</copy>
+		<copy todir="target/jpackage-windows-msi/Shimeji-ee/img">
+			<fileset dir="img" />
+		</copy>
+
+		<!-- 然后创建 MSI 安装程序 -->
+		<exec executable="jpackage" dir="target/jpackage-windows-msi" failonerror="true">
+			<arg value="--app-image" />
+			<arg value="Shimeji-ee" />
+			<arg value="--name" />
+			<arg value="Shimeji-ee" />
+			<arg value="--app-version" />
+			<arg value="${version}" />
+			<arg value="--description" />
+			<arg value="Shimeji-ee Desktop Pet Application" />
+			<arg value="--vendor" />
+			<arg value="Shimeji-ee Group" />
+			<arg value="--type" />
+			<arg value="msi" />
+			<arg value="--dest" />
+			<arg value="." />
+			<arg value="--win-menu" />
+			<arg value="--win-menu-group" />
+			<arg value="Games" />
+			<arg value="--win-shortcut" />
+		</exec>
+
+		<!-- 将生成的 MSI 安装程序移动到 target 根目录 -->
+		<move todir="target">
+			<fileset dir="target/jpackage-windows-msi">
+				<include name="*.msi" />
+			</fileset>
+		</move>
+
+		<echo message="Windows MSI installer created successfully!" />
+		<echo message="MSI installer location: target/Shimeji-ee-${version}.msi" />
+	</target>
+
+</project>
