@@ -283,7 +283,7 @@
                                 </goals>
                                 <configuration>
                                     <executable>java</executable>
-                                    <commandlineArgs>-Xmx512M -Xms128M -XX:ReservedCodeCacheSize=128M -XX:+UseG1GC -XX:MaxGCPauseMillis=50 -XX:+UseStringDeduplication -cp "target\Shimeji-ee.jar" com.group_finity.mascot.Main</commandlineArgs>
+                                    <commandlineArgs>-Xmx512M -Xms128M -XX:ReservedCodeCacheSize=128M -XX:+UseG1GC -XX:MaxGCPauseMillis=50 -XX:+UseStringDeduplication -cp "${project.build.directory}${file.separator}${project.build.finalName}.jar" com.group_finity.mascot.Main</commandlineArgs>
                                     <workingDirectory>${project.basedir}</workingDirectory>
                                 </configuration>
                             </execution>
