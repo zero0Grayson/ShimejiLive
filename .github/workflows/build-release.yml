@@ -258,8 +258,7 @@ jobs:
             --app-version "2.0.0" \
             --description "A desktop mascot that freely wanders and plays around the screen" \
             --vendor "Group Finity" \
-            --copyright "Copyright (c) 2009 Group Finity" \
-            --mac-sign
+            --copyright "Copyright (c) 2009 Group Finity"
 
       - name: Upload macOS DMG package
         uses: actions/upload-artifact@v4
