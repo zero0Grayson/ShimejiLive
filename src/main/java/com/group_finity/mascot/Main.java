@@ -226,8 +226,17 @@ public class Main {
      * 应用自定义主题颜色
      */
     private static void applyCustomThemeColors() {
+        // 获取应用程序基础目录
+        String baseDir = System.getProperty("app.dir");
+        if (baseDir == null) {
+            baseDir = System.getProperty("user.dir");
+        }
+        if (baseDir == null) {
+            baseDir = ".";
+        }
+        
         // 检查是否有自定义主题文件
-        File themeFile = new File("./conf/theme.properties");
+        File themeFile = new File(baseDir + "/conf/theme.properties");
         if (themeFile.exists()) {
             try {
                 Properties themeProps = new Properties();
@@ -367,7 +376,17 @@ public class Main {
             platform = Platform.x86_64;
         // load properties
         properties = new Properties();
-        try (FileInputStream input = new FileInputStream("./conf/settings.properties")) {
+        
+        // 获取应用程序基础目录
+        String baseDir = System.getProperty("app.dir");
+        if (baseDir == null) {
+            baseDir = System.getProperty("user.dir");
+        }
+        if (baseDir == null) {
+            baseDir = ".";
+        }
+        
+        try (FileInputStream input = new FileInputStream(baseDir + "/conf/settings.properties")) {
             properties.load(input);
         } catch (FileNotFoundException ex) {
             // File doesn't exist, continue with defaults
@@ -465,13 +484,22 @@ public class Main {
      */
     private boolean loadConfiguration(final String imageSet) {
         try {
+            // 获取应用程序基础目录
+            String baseDir = System.getProperty("app.dir");
+            if (baseDir == null) {
+                baseDir = System.getProperty("user.dir");
+            }
+            if (baseDir == null) {
+                baseDir = ".";
+            }
+            
             // try to load in the correct xml files
-            String filePath = "./conf/";
+            String filePath = baseDir + "/conf/";
             String actionsFile = filePath + "actions.xml";
             if (new File(filePath + "動作.xml").exists())
                 actionsFile = filePath + "動作.xml";
 
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if (new File(filePath + "actions.xml").exists())
                 actionsFile = filePath + "actions.xml";
             else if (new File(filePath + "動作.xml").exists())
@@ -487,7 +515,7 @@ public class Main {
             else if (new File(filePath + "1.xml").exists())
                 actionsFile = filePath + "1.xml";
 
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if (new File(filePath + "actions.xml").exists())
                 actionsFile = filePath + "actions.xml";
             else if (new File(filePath + "動作.xml").exists())
@@ -512,12 +540,12 @@ public class Main {
 
             configuration.load(new Entry(actions.getDocumentElement()), imageSet);
 
-            filePath = "./conf/";
+            filePath = baseDir + "/conf/";
             String behaviorsFile = filePath + "behaviors.xml";
             if (new File(filePath + "行動.xml").exists())
                 behaviorsFile = filePath + "行動.xml";
 
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if (new File(filePath + "behaviors.xml").exists())
                 behaviorsFile = filePath + "behaviors.xml";
             else if (new File(filePath + "behavior.xml").exists())
@@ -535,7 +563,7 @@ public class Main {
             else if (new File(filePath + "2.xml").exists())
                 behaviorsFile = filePath + "2.xml";
 
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if (new File(filePath + "behaviors.xml").exists())
                 behaviorsFile = filePath + "behaviors.xml";
             else if (new File(filePath + "behavior.xml").exists())
@@ -560,14 +588,14 @@ public class Main {
 
             configuration.load(new Entry(behaviors.getDocumentElement()), imageSet);
 
-            filePath = "./conf/";
+            filePath = baseDir + "/conf/";
             String infoFile = filePath + "info.xml";
 
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if (new File(filePath + "info.xml").exists())
                 infoFile = filePath + "info.xml";
 
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if (new File(filePath + "info.xml").exists())
                 infoFile = filePath + "info.xml";
 
@@ -1257,7 +1285,16 @@ public class Main {
 
     private void updateConfigFile() {
         try {
-            try (FileOutputStream output = new FileOutputStream("./conf/settings.properties")) {
+            // 获取应用程序基础目录
+            String baseDir = System.getProperty("app.dir");
+            if (baseDir == null) {
+                baseDir = System.getProperty("user.dir");
+            }
+            if (baseDir == null) {
+                baseDir = ".";
+            }
+            
+            try (FileOutputStream output = new FileOutputStream(baseDir + "/conf/settings.properties")) {
                 properties.store(output, "Shimeji-ee Configuration Options");
             }
         } catch (Exception ignored) {

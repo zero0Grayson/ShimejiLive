@@ -35,14 +35,14 @@ import com.formdev.flatlaf.FlatLaf;
  * @author Kilkakon
  */
 public class SettingsWindow extends javax.swing.JDialog {
-    private final String themeFile = "./conf/theme.properties";
-        private Properties themeProperties = new Properties();
-        private final Properties oldThemeProperties = new Properties();
-        private LookAndFeel lookAndFeel;
-        private final ArrayList<String> listData = new ArrayList<>();
-        private final ArrayList<String> blacklistData = new ArrayList<>();
-        private Boolean alwaysShowShimejiChooser = false;
-        private Boolean alwaysShowInformationScreen = false;
+    private final String themeFile;
+    private Properties themeProperties = new Properties();
+    private final Properties oldThemeProperties = new Properties();
+    private LookAndFeel lookAndFeel;
+    private final ArrayList<String> listData = new ArrayList<>();
+    private final ArrayList<String> blacklistData = new ArrayList<>();
+    private Boolean alwaysShowShimejiChooser = false;
+    private Boolean alwaysShowInformationScreen = false;
         private String filter = "nearest";
         private double scaling = 1.0;
         private double opacity = 1.0;
@@ -72,6 +72,17 @@ public class SettingsWindow extends javax.swing.JDialog {
          */
         public SettingsWindow(javax.swing.JFrame parent, boolean modal) {
                 super(parent, modal);
+                
+                // 获取应用程序基础目录
+                String baseDir = System.getProperty("app.dir");
+                if (baseDir == null) {
+                    baseDir = System.getProperty("user.dir");
+                }
+                if (baseDir == null) {
+                    baseDir = ".";
+                }
+                themeFile = baseDir + "/conf/theme.properties";
+                
                 initComponents();
         }
 
@@ -2030,7 +2041,8 @@ public class SettingsWindow extends javax.swing.JDialog {
                                         !properties.getProperty("InteractiveWindowsBlacklist", "")
                                         .equals(interactiveWindowsBlacklist);
                     // Config file name
-                    String configFile = "./conf/settings.properties";
+                    String baseDir = System.getProperty("app.dir", System.getProperty("user.dir", "."));
+                    String configFile = baseDir + "/conf/settings.properties";
 
                     try (FileOutputStream output = new FileOutputStream(configFile)) {
                         properties.setProperty("AlwaysShowShimejiChooser", alwaysShowShimejiChooser.toString());

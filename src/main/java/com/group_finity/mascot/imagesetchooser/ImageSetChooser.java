@@ -71,10 +71,31 @@ public class ImageSetChooser extends javax.swing.JDialog
             return new File( dir + "/" + name ).isDirectory();
         };
         
-        // Top Level Directory
-        String topDir = "./img";
+        // Top Level Directory - 使用app.dir系统属性或者user.dir作为基础路径
+        String baseDir = System.getProperty("app.dir");
+        if (baseDir == null) {
+            baseDir = System.getProperty("user.dir");
+        }
+        if (baseDir == null) {
+            baseDir = ".";
+        }
+        
+        String topDir = baseDir + "/img";
         File dir = new File(topDir);
+        
+        // 调试信息
+        System.out.println("Base directory: " + baseDir);
+        System.out.println("Image directory: " + topDir);
+        System.out.println("Directory exists: " + dir.exists());
+        System.out.println("Is directory: " + dir.isDirectory());
+        
         String[] children = dir.list( fileFilter );
+        
+        // 如果无法读取目录内容，children会是null，需要检查
+        if (children == null) {
+            System.err.println("Cannot read image directory: " + topDir);
+            children = new String[0]; // 避免NullPointerException
+        }
 
         // Create ImageSetChooserPanels for ShimejiList
         boolean onList1 = true;	//Toggle adding between the two lists
@@ -82,12 +103,12 @@ public class ImageSetChooser extends javax.swing.JDialog
         for( String imageSet : children )
         {
             // Determine actions file
-            String filePath = "./conf/";
+            String filePath = baseDir + "/conf/";
             String actionsFile = filePath + "actions.xml";
             if( new File( filePath + "動作.xml" ).exists( ) )
                 actionsFile = filePath + "動作.xml";
             
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if( new File( filePath + "actions.xml" ).exists( ) )
                 actionsFile = filePath + "actions.xml";
             if( new File( filePath + "動作.xml" ).exists( ) )
@@ -103,7 +124,7 @@ public class ImageSetChooser extends javax.swing.JDialog
             if( new File( filePath + "1.xml" ).exists( ) )
                 actionsFile = filePath + "1.xml";
             
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if( new File( filePath + "actions.xml" ).exists( ) )
                 actionsFile = filePath + "actions.xml";
             if( new File( filePath + "動作.xml" ).exists( ) )
@@ -120,12 +141,12 @@ public class ImageSetChooser extends javax.swing.JDialog
                 actionsFile = filePath + "1.xml";
 
             // Determine behaviours file
-            filePath = "./conf/";
+            filePath = baseDir + "/conf/";
             String behaviorsFile = filePath + "behaviors.xml";
             if( new File( filePath + "行動.xml" ).exists( ) )
                 behaviorsFile = filePath + "行動.xml";
             
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if( new File( filePath + "behaviors.xml" ).exists( ) )
                 behaviorsFile = filePath + "behaviors.xml";
             if( new File( filePath + "behavior.xml" ).exists( ) )
@@ -143,7 +164,7 @@ public class ImageSetChooser extends javax.swing.JDialog
             if( new File( filePath + "2.xml" ).exists( ) )
                 behaviorsFile = filePath + "2.xml";
             
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if( new File( filePath + "behaviors.xml" ).exists( ) )
                 behaviorsFile = filePath + "behaviors.xml";
             if( new File( filePath + "behavior.xml" ).exists( ) )
@@ -162,14 +183,14 @@ public class ImageSetChooser extends javax.swing.JDialog
                 behaviorsFile = filePath + "2.xml";
             
             // Determine information file
-            filePath = "./conf/";
+            filePath = baseDir + "/conf/";
             String infoFile = filePath + "info.xml";
             
-            filePath = "./conf/" + imageSet + "/";
+            filePath = baseDir + "/conf/" + imageSet + "/";
             if( new File( filePath + "info.xml" ).exists( ) )
                 infoFile = filePath + "info.xml";
             
-            filePath = "./img/" + imageSet + "/conf/";
+            filePath = baseDir + "/img/" + imageSet + "/conf/";
             if( new File( filePath + "info.xml" ).exists( ) )
                 infoFile = filePath + "info.xml";
 
@@ -264,8 +285,15 @@ public class ImageSetChooser extends javax.swing.JDialog
     {
         try
         {
-            // Config file name
-            String configFile = "./conf/settings.properties";
+            // Config file name - 使用系统属性来确定正确的路径
+            String baseDir = System.getProperty("app.dir");
+            if (baseDir == null) {
+                baseDir = System.getProperty("user.dir");
+            }
+            if (baseDir == null) {
+                baseDir = ".";
+            }
+            String configFile = baseDir + "/conf/settings.properties";
             try (FileOutputStream output = new FileOutputStream(configFile)) {
                 Main.getInstance().getProperties().setProperty("ActiveShimeji", imageSets.toString().replace("[", "").replace("]", "").replace(", ", "/"));
                 Main.getInstance().getProperties().store(output, "Shimeji-ee Configuration Options");

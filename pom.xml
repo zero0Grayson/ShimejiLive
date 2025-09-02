@@ -292,96 +292,7 @@
                 </plugins>
             </build>
         </profile>
-        
-        <!-- jpackage 配置文件 -->
-        <profile>
-            <id>jpackage</id>
-            <properties>
-                <!-- jpackage 参数 -->
-                <jpackage.main-jar>lib/Shimeji-ee.jar</jpackage.main-jar>
-                <jpackage.main-class>com.group_finity.mascot.Main</jpackage.main-class>
-                <jpackage.app-version>2.0.0</jpackage.app-version>
-                <jpackage.description>A desktop mascot that freely wanders and plays around the screen</jpackage.description>
-                <jpackage.vendor>Group Finity</jpackage.vendor>
-                <jpackage.copyright>Copyright (c) 2009 Group Finity</jpackage.copyright>
-                
-                <!-- JVM 选项 -->
-                <jpackage.jvm.options>
-                    --enable-native-access=ALL-UNNAMED
-                    --add-opens=java.base/java.lang=ALL-UNNAMED
-                    --add-opens=java.desktop/sun.awt=ALL-UNNAMED
-                    --add-opens=java.desktop/java.awt=ALL-UNNAMED
-                    -Xmx512M
-                    -Xms128M
-                    -XX:+UseG1GC
-                </jpackage.jvm.options>
-                
-                <!-- Windows 特定选项 -->
-                <jpackage.windows.menu>true</jpackage.windows.menu>
-                <jpackage.windows.shortcut>true</jpackage.windows.shortcut>
-                <jpackage.windows.dir-chooser>true</jpackage.windows.dir-chooser>
-                <jpackage.windows.upgrade-uuid>12345678-1234-1234-1234-123456789012</jpackage.windows.upgrade-uuid>
-                
-                <!-- Linux 特定选项 -->
-                <jpackage.linux.shortcut>true</jpackage.linux.shortcut>
-                <jpackage.linux.menu-group>Games</jpackage.linux.menu-group>
-                
-                <!-- macOS 特定选项 -->
-                <jpackage.mac.sign>true</jpackage.mac.sign>
-            </properties>
-            
-            <build>
-                <plugins>
-                    <!-- 准备 jpackage 输入目录 -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>3.3.1</version>
-                        <executions>
-                            <!-- 创建 jpackage 输入目录 -->
-                            <execution>
-                                <id>prepare-jpackage-input</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${project.build.directory}</directory>
-                                            <includes>
-                                                <include>conf/</include>
-                                                <include>img/</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                            <!-- 复制 JAR 到 lib 目录 -->
-                            <execution>
-                                <id>copy-jar-to-lib</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/jpackage-input/lib</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${project.build.directory}</directory>
-                                            <includes>
-                                                <include>Shimeji-ee.jar</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+
         
         <!-- Windows jpackage 构建配置 -->
         <profile>
@@ -395,38 +306,6 @@
                         <artifactId>maven-resources-plugin</artifactId>
                         <version>3.3.1</version>
                         <executions>
-                            <!-- 复制配置文件到target根目录 -->
-                            <execution>
-                                <id>copy-conf-to-target</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>conf</directory>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                            <!-- 复制图片文件到target根目录 -->
-                            <execution>
-                                <id>copy-img-to-target</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/img</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>img</directory>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
                             <!-- 准备便携版输入目录 -->
                             <execution>
                                 <id>prepare-portable-input</id>
@@ -675,6 +554,336 @@
                                     <arguments>
                                         <argument>-Command</argument>
                                         <argument>Move-Item -Path jpackage-windows-msi/*.msi -Destination . -Force</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- macOS jpackage 构建配置 -->
+        <profile>
+            <id>jpackage-mac</id>
+            <build>
+                <defaultGoal>clean package</defaultGoal>
+                <plugins>
+                    <!-- 资源插件 - 准备输入文件 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <!-- 准备app-image输入目录 -->
+                            <execution>
+                                <id>prepare-app-image-input</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/jpackage-macos-app/input</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}</directory>
+                                            <includes>
+                                                <include>Shimeji-ee.jar</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <!-- 准备DMG输入目录 -->
+                            <execution>
+                                <id>prepare-dmg-input</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/jpackage-macos-dmg/input</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}</directory>
+                                            <includes>
+                                                <include>Shimeji-ee.jar</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <!-- Exec插件 - 执行jpackage命令 -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <!-- 创建app-image -->
+                            <execution>
+                                <id>jpackage-app-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <workingDirectory>${project.build.directory}/jpackage-macos-app</workingDirectory>
+                                    <arguments>
+                                        <argument>--input</argument>
+                                        <argument>input</argument>
+                                        <argument>--main-jar</argument>
+                                        <argument>Shimeji-ee.jar</argument>
+                                        <argument>--main-class</argument>
+                                        <argument>com.group_finity.mascot.Main</argument>
+                                        <argument>--name</argument>
+                                        <argument>Shimeji-ee</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--description</argument>
+                                        <argument>Shimeji-ee Desktop Pet Application</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>Shimeji-ee Group</argument>
+                                        <argument>--icon</argument>
+                                        <argument>../../img/icon.png</argument>
+                                        <argument>--type</argument>
+                                        <argument>app-image</argument>
+                                        <argument>--dest</argument>
+                                        <argument>.</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Duser.dir=$APPDIR</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapp.dir=$APPDIR</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Xmx512M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Xms128M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:ReservedCodeCacheSize=128M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:+UseG1GC</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:MaxGCPauseMillis=50</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:+UseStringDeduplication</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--enable-native-access=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.desktop/sun.awt=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.desktop/java.awt=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Djava.awt.headless=false</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapple.awt.enableTemplateImages=true</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Djava.awt.Window.locationByPlatform=false</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapple.laf.useScreenMenuBar=false</argument>
+                                        <argument>--resource-dir</argument>
+                                        <argument>../../macos-resources</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 复制资源到app-image -->
+                            <execution>
+                                <id>copy-resources-to-app</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>cp</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-r</argument>
+                                        <argument>conf</argument>
+                                        <argument>jpackage-macos-app/Shimeji-ee.app/Contents/app/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 复制图片资源到app-image -->
+                            <execution>
+                                <id>copy-img-to-app</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>cp</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-r</argument>
+                                        <argument>img</argument>
+                                        <argument>jpackage-macos-app/Shimeji-ee.app/Contents/app/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 创建便携版ZIP -->
+                            <execution>
+                                <id>create-portable-zip</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>zip</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-r</argument>
+                                        <argument>Shimeji-ee_${project.version}_macOS_Portable.zip</argument>
+                                        <argument>jpackage-macos-app/Shimeji-ee.app</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 创建DMG app-image -->
+                            <execution>
+                                <id>jpackage-dmg-app-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <workingDirectory>${project.build.directory}/jpackage-macos-dmg</workingDirectory>
+                                    <arguments>
+                                        <argument>--input</argument>
+                                        <argument>input</argument>
+                                        <argument>--main-jar</argument>
+                                        <argument>Shimeji-ee.jar</argument>
+                                        <argument>--main-class</argument>
+                                        <argument>com.group_finity.mascot.Main</argument>
+                                        <argument>--name</argument>
+                                        <argument>Shimeji-ee</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--description</argument>
+                                        <argument>Shimeji-ee Desktop Pet Application</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>Shimeji-ee Group</argument>
+                                        <argument>--icon</argument>
+                                        <argument>../../img/icon.png</argument>
+                                        <argument>--type</argument>
+                                        <argument>app-image</argument>
+                                        <argument>--dest</argument>
+                                        <argument>.</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Duser.dir=$APPDIR</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapp.dir=$APPDIR</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Xmx512M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Xms128M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:ReservedCodeCacheSize=128M</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:+UseG1GC</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:MaxGCPauseMillis=50</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-XX:+UseStringDeduplication</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--enable-native-access=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.desktop/sun.awt=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>--add-opens=java.desktop/java.awt=ALL-UNNAMED</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Djava.awt.headless=false</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapple.awt.enableTemplateImages=true</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Djava.awt.Window.locationByPlatform=false</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dapple.laf.useScreenMenuBar=false</argument>
+                                        <argument>--resource-dir</argument>
+                                        <argument>../../macos-resources</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 复制资源到DMG app-image -->
+                            <execution>
+                                <id>copy-resources-to-dmg</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>cp</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-r</argument>
+                                        <argument>conf</argument>
+                                        <argument>jpackage-macos-dmg/Shimeji-ee.app/Contents/app/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 复制图片资源到DMG app-image -->
+                            <execution>
+                                <id>copy-img-to-dmg</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>cp</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-r</argument>
+                                        <argument>img</argument>
+                                        <argument>jpackage-macos-dmg/Shimeji-ee.app/Contents/app/</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 创建DMG安装程序 -->
+                            <execution>
+                                <id>jpackage-create-dmg</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <workingDirectory>${project.build.directory}/jpackage-macos-dmg</workingDirectory>
+                                    <arguments>
+                                        <argument>--app-image</argument>
+                                        <argument>Shimeji-ee.app</argument>
+                                        <argument>--name</argument>
+                                        <argument>Shimeji-ee</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--description</argument>
+                                        <argument>Shimeji-ee Desktop Pet Application</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>Shimeji-ee Group</argument>
+                                        <argument>--type</argument>
+                                        <argument>dmg</argument>
+                                        <argument>--dest</argument>
+                                        <argument>.</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- 移动DMG文件到target根目录 -->
+                            <execution>
+                                <id>move-dmg-to-target</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>sh</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>find jpackage-macos-dmg -name "*.dmg" -exec mv {} . \;</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

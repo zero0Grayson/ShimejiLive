@@ -58,7 +58,16 @@ public class InformationWindow extends javax.swing.JFrame
         FileInputStream input;
         try
         {
-            String themeFile = "./conf/theme.properties";
+            // 获取应用程序基础目录
+            String baseDir = System.getProperty("app.dir");
+            if (baseDir == null) {
+                baseDir = System.getProperty("user.dir");
+            }
+            if (baseDir == null) {
+                baseDir = ".";
+            }
+            
+            String themeFile = baseDir + "/conf/theme.properties";
             input = new FileInputStream(themeFile);
             themeProperties.load( input );
         }
