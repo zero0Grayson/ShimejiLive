@@ -94,6 +94,12 @@ public class Main {
 
     static {
         try {
+            // 获取 系统信息
+            String osName = System.getProperty("os.name");
+            String osVersion = System.getProperty("os.version");
+            String osArch = System.getProperty("os.arch");
+            System.out.println("当前操作系统: " + osName + " " + osVersion + " " + osArch);
+
             // 获取 Java 版本信息
             String javaVersion = System.getProperty("java.version");
             System.out.println("当前 Java 版本: " + javaVersion);
@@ -280,11 +286,59 @@ public class Main {
     }
 
     /**
+     * 全局配置高DPI支持
+     */
+    private static void configureHighDPIGlobally() {
+        // 检测操作系统
+        String osName = System.getProperty("os.name").toLowerCase();
+        
+        if (osName.contains("mac")) {
+            // macOS 特定设置
+            System.setProperty("apple.awt.application-appearance", "system");
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+            System.setProperty("apple.awt.application-name", "Shimeji-ee");
+            
+            // 启用 Metal 渲染管道（macOS 10.14+）
+            System.setProperty("sun.java2d.metal", "true");
+            System.setProperty("sun.java2d.opengl", "false");
+            
+            // 启用高DPI感知
+            System.setProperty("sun.java2d.dpiaware", "true");
+            System.setProperty("sun.java2d.uiScale", "1.0");
+            
+            // macOS Retina 显示支持
+            System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
+            System.setProperty("com.apple.macos.use-file-dialog-packages", "true");
+            
+            log.info("已配置 macOS 高DPI 支持");
+        }
+        
+        // 通用高质量渲染设置
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        System.setProperty("swing.aatext", "true");
+        
+        // 启用 Marlin 渲染引擎（更好的2D渲染）
+        System.setProperty("sun.java2d.renderer", "sun.java2d.marlin.MarlinRenderingEngine");
+        System.setProperty("sun.java2d.renderer.useThreadLocal", "true");
+        
+        // 设置默认字体渲染
+        System.setProperty("sun.java2d.renderer.useRef", "true");
+        System.setProperty("sun.java2d.renderer.pixelsize", "2048");
+        
+        // 强制使用双缓冲
+        System.setProperty("sun.awt.noerasebackground", "true");
+        System.setProperty("sun.java2d.noddraw", "true");
+    }
+
+    /**
      * 程序主方法。
      * 
      * @param args 命令行参数。
      */
     public static void main(final String[] args) {
+        // 在应用程序启动前配置高DPI支持
+        configureHighDPIGlobally();
+        
         try {
             getInstance().run();
         } catch (OutOfMemoryError err) {
@@ -601,6 +655,31 @@ public class Main {
     }
 
     /**
+     * 检查当前操作系统是否为 macOS
+     */
+    private static boolean isMacOS() {
+        return System.getProperty("os.name").toLowerCase().contains("mac");
+    }
+
+    /**
+     * 检查鼠标事件是否应该触发弹出菜单（包含 macOS 兼容性处理）
+     */
+    private static boolean shouldShowPopupMenu(MouseEvent event) {
+        // 标准的弹出触发器检查
+        if (event.isPopupTrigger()) {
+            return true;
+        }
+        
+        // macOS 特殊处理：右键点击或 Ctrl+左键点击
+        if (isMacOS()) {
+            return event.getButton() == MouseEvent.BUTTON3 || 
+                   (event.getButton() == MouseEvent.BUTTON1 && event.isControlDown());
+        }
+        
+        return false;
+    }
+
+    /**
      * 创建系统托盘图标。
      * 托盘图标提供了用于控制应用程序的菜单。
      *
@@ -640,7 +719,7 @@ public class Main {
 
                 @Override
                 public void mouseReleased(MouseEvent event) {
-                    if (event.isPopupTrigger()) {
+                    if (shouldShowPopupMenu(event)) {
                         // close the form if it's open
                         if (form != null)
                             form.dispose();

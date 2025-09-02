@@ -187,6 +187,31 @@ public class Mascot {
         return "mascot" + id;
     }
 
+    /**
+     * 检查当前操作系统是否为 macOS
+     */
+    private static boolean isMacOS() {
+        return System.getProperty("os.name").toLowerCase().contains("mac");
+    }
+
+    /**
+     * 检查鼠标事件是否应该触发弹出菜单（包含 macOS 兼容性处理）
+     */
+    private static boolean shouldShowPopupMenu(MouseEvent event) {
+        // 标准的弹出触发器检查
+        if (event.isPopupTrigger()) {
+            return true;
+        }
+        
+        // macOS 特殊处理：右键点击或 Ctrl+左键点击
+        if (isMacOS()) {
+            return event.getButton() == MouseEvent.BUTTON3 || 
+                   (event.getButton() == MouseEvent.BUTTON1 && event.isControlDown());
+        }
+        
+        return false;
+    }
+
     private void mousePressed(final MouseEvent event) {
         // Switch to drag the animation when the mouse is down
         if (!isPaused() && getBehavior() != null) {
@@ -202,7 +227,7 @@ public class Mascot {
     }
 
     private void mouseReleased(final MouseEvent event) {
-        if (event.isPopupTrigger()) {
+        if (shouldShowPopupMenu(event)) {
             SwingUtilities.invokeLater(() -> showPopup(event.getX(), event.getY()));
         } else {
             if (!isPaused() && getBehavior() != null) {
