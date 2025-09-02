@@ -403,20 +403,28 @@ jobs:
           # Create release with files that exist
           FILES_TO_UPLOAD=""
           
-          # Check for Windows files
-          if ls *.msi 1> /dev/null 2>&1; then
-            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *.msi"
+          # Check for Windows files with exact file matching
+          if ls Shimeji-ee*.msi 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD Shimeji-ee*.msi"
           fi
-          if ls *Portable*.zip 1> /dev/null 2>&1; then
-            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *Portable*.zip"
+          if ls Shimeji-ee*Portable*.zip 1> /dev/null 2>&1; then
+            # Separate Windows and macOS portable files
+            for file in Shimeji-ee*Portable*.zip; do
+              if [[ "$file" == *"macOS"* ]]; then
+                continue  # Skip macOS files in this check
+              fi
+              FILES_TO_UPLOAD="$FILES_TO_UPLOAD \"$file\""
+            done
           fi
           
-          # Check for macOS files
-          if ls *.dmg 1> /dev/null 2>&1; then
-            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *.dmg"
+          # Check for macOS files with exact file matching
+          if ls Shimeji-ee*.dmg 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD Shimeji-ee*.dmg"
           fi
-          if ls *macOS*.zip 1> /dev/null 2>&1; then
-            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *macOS*.zip"
+          if ls Shimeji-ee*macOS*.zip 1> /dev/null 2>&1; then
+            for file in Shimeji-ee*macOS*.zip; do
+              FILES_TO_UPLOAD="$FILES_TO_UPLOAD \"$file\""
+            done
           fi
           
           echo "Files to upload: $FILES_TO_UPLOAD"
@@ -426,10 +434,18 @@ jobs:
             exit 1
           fi
           
+          # Upload files one by one to avoid glob expansion issues
           gh release create "${{ steps.release_info.outputs.release_tag }}" \
             --title "${{ steps.release_info.outputs.release_name }}" \
             --notes-file release_notes.md \
-            --prerelease \
-            $FILES_TO_UPLOAD
+            --prerelease
+          
+          # Upload each file individually
+          for file in Shimeji-ee*.msi Shimeji-ee*Portable*.zip Shimeji-ee*.dmg Shimeji-ee*macOS*.zip; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $file"
+              gh release upload "${{ steps.release_info.outputs.release_tag }}" "$file" || echo "Failed to upload $file"
+            fi
+          done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
