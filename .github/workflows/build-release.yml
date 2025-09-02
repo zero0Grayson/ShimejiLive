@@ -27,16 +27,27 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Install Apache Ant
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ant
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
-      - name: Build JAR with Ant
+      - name: Install Maven Daemon (mvnd)
+        run: |
+          # Download and install mvnd for faster builds
+          curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-linux-amd64.tar.gz -o mvnd.tar.gz
+          tar -xzf mvnd.tar.gz
+          sudo mv maven-mvnd-1.0.2-linux-amd64 /opt/mvnd
+          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
+          mvnd --version
+
+      - name: Build JAR with Maven Daemon
         id: build
         run: |
-          echo "Building JAR using ant clean jar..."
-          if ant clean jar; then
+          echo "Building JAR using mvnd clean package..."
+          if mvnd clean package -DskipTests; then
             echo "Build successful"
             echo "build_success=true" >> $GITHUB_OUTPUT
           
@@ -88,9 +99,12 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Install Apache Ant
-        run: |
-          choco install ant
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
       - name: Install WiX Toolset
         run: |
@@ -110,11 +124,12 @@ jobs:
 
       - name: Build jpackage Windows packages
         run: |
-          echo "Building Windows packages using jpackage..."
-          ant -f build-jpackage-windows.xml jpackage-windows-all
+          echo "Building Windows packages using Maven jpackage profile..."
+          mvn clean install -Pjpackage -DskipTests
           echo "Checking for generated files:"
-          dir target\*.msi
-          dir target\*.zip
+          if (Test-Path "target\*.msi") { dir target\*.msi } else { echo "No MSI files found" }
+          if (Test-Path "target\*Portable*.zip") { dir target\*Portable*.zip } else { echo "No portable ZIP files found" }
+        shell: powershell
 
       - name: Upload Windows MSI installer
         uses: actions/upload-artifact@v4
@@ -187,7 +202,7 @@ jobs:
           
           ## What's included / 包含内容:
           
-          ### Native packages built with jpackage / 使用 jpackage 构建的原生包:
+          ### Native packages built with Maven + jpackage / 使用 Maven + jpackage 构建的原生包:
           - **Shimeji-ee-windows-msi** - Windows MSI installer with embedded JRE / Windows MSI 安装程序，含嵌入式 JRE
           - **Shimeji-ee-windows-portable** - Windows portable version with embedded JRE / Windows 便携版，含嵌入式 JRE
           
@@ -206,27 +221,28 @@ jobs:
           
           ## Technical Details / 技术详情:
           - **JRE Version / JRE 版本**: OpenJDK 21 (embedded in native packages)
-          - **Build Tool / 构建工具**: jpackage (part of JDK)
+          - **Build Tool / 构建工具**: Maven + jpackage (part of JDK)
           - **Packaging / 打包方式**: Native application bundles with embedded runtime
           - **File Size / 文件大小**: Larger than JAR-only due to embedded JRE, but no Java installation required
           
-          ## Advantages of jpackage builds / jpackage 构建的优势:
+          ## Advantages of Maven + jpackage builds / Maven + jpackage 构建的优势:
           - **Zero Java dependency / 零 Java 依赖**: No need to install Java separately
           - **Native performance / 原生性能**: Better startup time and system integration
           - **Easy distribution / 简易分发**: Single file/folder contains everything needed
           - **System integration / 系统集成**: Proper application registration (Windows) and .app bundle (macOS)
+          - **Maven integration / Maven 集成**: Streamlined build process with dependency management
           
           ## Notes / 注意事项:
-          - jpackage builds are larger due to embedded JRE but provide better user experience
-            jpackage 构建由于嵌入式 JRE 而较大，但提供更好的用户体验
+          - Maven + jpackage builds are larger due to embedded JRE but provide better user experience
+            Maven + jpackage 构建由于嵌入式 JRE 而较大，但提供更好的用户体验
           - Windows MSI installer provides proper system integration and uninstall support
             Windows MSI 安装程序提供适当的系统集成和卸载支持
           - All native packages include the required JVM parameters for proper operation
             所有原生包都包含正确运行所需的 JVM 参数
           
-          This is an automated pre-release build generated at $BUILD_TIME using jpackage technology.
+          This is an automated pre-release build generated at $BUILD_TIME using Maven + jpackage technology.
           
-          这是在 $BUILD_TIME 使用 jpackage 技术自动生成的预发布版本。
+          这是在 $BUILD_TIME 使用 Maven + jpackage 技术自动生成的预发布版本。
           
           ---
           *This release was automatically generated from commit ${{ github.sha }} / 此版本由提交 ${{ github.sha }} 自动生成*
