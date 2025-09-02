@@ -261,66 +261,6 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-  build-jpackage-linux:
-    needs: build-jar
-    if: needs.build-jar.outputs.build-success == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Install Maven Daemon (mvnd)
-        run: |
-          # Download and install mvnd for faster builds
-          curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-linux-amd64.tar.gz -o mvnd.tar.gz
-          tar -xzf mvnd.tar.gz
-          sudo mv maven-mvnd-1.0.2-linux-amd64 /opt/mvnd
-          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
-          mvnd --version
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Build Linux packages with mvnd
-        run: |
-          # Build using mvnd with jpackage-linux profile
-          mvnd -P jpackage-linux install
-
-      - name: Upload Linux DEB package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-deb
-          path: target/*.deb
-          retention-days: 1
-          if-no-files-found: warn
-
-      - name: Upload Linux RPM package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-rpm
-          path: target/*.rpm
-          retention-days: 1
-          if-no-files-found: warn
-
-      - name: Upload Linux portable package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-portable
-          path: target/Shimeji-ee_*_Linux_Portable.zip
-          retention-days: 1
-          if-no-files-found: warn
-
   build-jpackage-linux-amd64:
     needs: build-jar
     if: needs.build-jar.outputs.build-success == 'true'
@@ -372,59 +312,8 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-  build-jpackage-linux-arm64:
-    needs: build-jar
-    if: needs.build-jar.outputs.build-success == 'true'
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up JDK 21 (arm64)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          architecture: aarch64
-      - name: Install Maven Daemon (mvnd arm64)
-        run: |
-          curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-linux-aarch64.tar.gz -o mvnd.tar.gz
-          tar -xzf mvnd.tar.gz
-          sudo mv maven-mvnd-1.0.2-linux-aarch64 /opt/mvnd
-          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
-          mvnd --version
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Build Linux arm64 packages with mvnd
-        run: |
-          mvnd -P jpackage-linux install
-      - name: Upload Linux arm64 DEB package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-arm64-deb
-          path: target/*arm64*.deb
-          retention-days: 1
-          if-no-files-found: warn
-      - name: Upload Linux arm64 RPM package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-arm64-rpm
-          path: target/*aarch64*.rpm
-          retention-days: 1
-          if-no-files-found: warn
-      - name: Upload Linux arm64 portable package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Shimeji-ee-linux-arm64-portable
-          path: target/Shimeji-ee_*_Linux_Portable.zip
-          retention-days: 1
-          if-no-files-found: warn
-
   create-release:
-    needs: [build-jar, build-jpackage-windows, build-jpackage-macos-amd64, build-jpackage-macos-arm64, build-jpackage-linux-amd64, build-jpackage-linux-arm64]
+    needs: [build-jar, build-jpackage-windows, build-jpackage-macos-amd64, build-jpackage-macos-arm64, build-jpackage-linux-amd64]
     runs-on: ubuntu-latest
     if: needs.build-jar.outputs.build-success == 'true'
 
@@ -489,11 +378,9 @@ jobs:
           - **Shimeji-ee_2.0.0_macOS_Portable-arm64.zip** - macOS Apple Silicon (ARM64) portable version / macOS Apple Silicon (ARM64) 便携版
           
           #### Linux (新增支持!)
-          - **shimeji-ee_2.0.0_amd64.deb** - Linux DEB package (amd64) with embedded JRE (Ubuntu, Debian)
-          - **shimeji-ee_2.0.0_arm64.deb** - Linux DEB package (arm64) with embedded JRE (Ubuntu, Debian)
-          - **shimeji-ee-2.0.0-1.x86_64.rpm** - Linux RPM package (amd64) with embedded JRE (Fedora, CentOS, openSUSE)
-          - **shimeji-ee-2.0.0-1.aarch64.rpm** - Linux RPM package (arm64) with embedded JRE (Fedora, CentOS, openSUSE)
-          - **Shimeji-ee_2.0.0_Linux_Portable.zip** - Linux portable version (both arch) with embedded JRE
+          - **shimeji-ee_2.0.0_amd64.deb** - Linux DEB package with embedded JRE (Ubuntu, Debian) / Linux DEB 安装包，含嵌入式 JRE (Ubuntu, Debian)
+          - **shimeji-ee-2.0.0-1.x86_64.rpm** - Linux RPM package with embedded JRE (Fedora, CentOS, openSUSE) / Linux RPM 安装包，含嵌入式 JRE (Fedora, CentOS, openSUSE)
+          - **Shimeji-ee_2.0.0_Linux_Portable.zip** - Linux portable version with embedded JRE / Linux 便携版，含嵌入式 JRE
           
           ## Installation / 安装说明:
           
@@ -514,19 +401,13 @@ jobs:
           ### Linux (新增支持!)
           1. **DEB Package / DEB 安装包** (Ubuntu, Debian):
              ```bash
-             # amd64
              sudo dpkg -i shimeji-ee_2.0.0_amd64.deb
-             # arm64
-             sudo dpkg -i shimeji-ee_2.0.0_arm64.deb
              sudo apt-get install -f  # 解决可能的依赖问题
              ```
           2. **RPM Package / RPM 安装包** (Fedora, CentOS, openSUSE):
              ```bash
-             # amd64
              sudo rpm -i shimeji-ee-2.0.0-1.x86_64.rpm
-             # arm64
-             sudo rpm -i shimeji-ee-2.0.0-1.aarch64.rpm
-             # 或者使用 dnf/yum: sudo dnf install <rpm文件>
+             # 或者使用 dnf/yum: sudo dnf install shimeji-ee-2.0.0-1.x86_64.rpm
              ```
           3. **Portable Version / 便携版**: Extract the portable zip and run the shimeji-ee executable
              解压便携版 zip 并运行 shimeji-ee 可执行文件
@@ -541,11 +422,11 @@ jobs:
           - **Architecture / 架构**: 
             - Windows: Supports both x86 and x64 systems / 支持 x86 和 x64 系统
             - macOS: Separate builds for Intel (AMD64) and Apple Silicon (ARM64) / Intel (AMD64) 和 Apple Silicon (ARM64) 分别构建
-            - Linux: amd64 (x86_64) 和 arm64 (aarch64) 架构
+            - Linux: x86_64 (AMD64) architecture / x86_64 (AMD64) 架构
           - **Wide compatibility / 广泛兼容性**: 
             - Windows 10/11 (both x86 and x64)
             - macOS 10.15+ (Intel and Apple Silicon)
-            - Linux: Ubuntu 18.04+/Debian 10+ (amd64/arm64), Fedora/CentOS/openSUSE (amd64/arm64)
+            - Linux: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, openSUSE Leap 15.2+ (x86_64)
           
           ## Notes / 注意事项:
           - jpackage builds are larger due to embedded JRE but provide better user experience
