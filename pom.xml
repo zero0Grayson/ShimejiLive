@@ -1,0 +1,1105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.group_finity</groupId>
+    <artifactId>shimeji-live</artifactId>
+    <version>2.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Shimeji-Live</name>
+    <description>A desktop mascot that freely wanders and plays around the screen - Live Edition</description>
+    <url>https://github.com/BegoniaHe/dc-ShimejiLive</url>
+    <inceptionYear>2009</inceptionYear>
+    
+    <licenses>
+        <license>
+            <name>Zlib</name>
+            <url>https://www.zlib.net/zlib_license.html</url>
+            <comments>The license used for Shimeji, by Yuki Yamada of Group Finity.</comments>
+        </license>
+        <license>
+            <name>BSD-2-Clause</name>
+            <url>https://opensource.org/license/bsd-2-clause</url>
+            <comments>The license used for Shimeji-ee, by the Shimeji-ee Group.</comments>
+        </license>
+    </licenses>
+    
+    <organization>
+        <name>Group Finity</name>
+        <url>http://www.group-finity.com/</url>
+    </organization>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        
+        <!-- 依赖版本 -->
+        <jna.version>5.17.0</jna.version>
+        <flatlaf.version>3.6</flatlaf.version>
+        <rhino.version>1.7.14</rhino.version>
+        <absolutelayout.version>RELEASE270</absolutelayout.version>
+        
+        <!-- 打包配置 -->
+        <mainClass>com.group_finity.mascot.Main</mainClass>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- AbsoluteLayout -->
+        <dependency>
+            <groupId>org.netbeans.external</groupId>
+            <artifactId>AbsoluteLayout</artifactId>
+            <version>${absolutelayout.version}</version>
+        </dependency>
+
+        <!-- Java Native Access -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
+        
+        <!-- Java Native Access Platform -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
+
+        <!-- Rhino JavaScript Engine -->
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>${rhino.version}</version>
+        </dependency>
+
+        <!-- FlatLaf Look and Feel -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>${flatlaf.version}</version>
+        </dependency>
+
+        <!-- FlatLaf IntelliJ Themes -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf-intellij-themes</artifactId>
+            <version>${flatlaf.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <defaultGoal>clean verify</defaultGoal>
+        <finalName>Shimeji-ee</finalName>
+        
+        <!-- 使用标准Maven目录结构 -->
+        <sourceDirectory>src/main/java</sourceDirectory>
+        
+        <resources>
+            <!-- 复制src/main/resources中的文件 -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <targetPath>.</targetPath>
+                <filtering>false</filtering>
+            </resource>
+            <!-- 只复制必要的配置文件到JAR内部 -->
+            <resource>
+                <directory>conf</directory>
+                <targetPath>.</targetPath>
+                <filtering>false</filtering>
+                <includes>
+                    <!-- 只包含核心配置文件，不包含用户可修改的配置 -->
+                    <include>logging.properties</include>
+                    <include>language*.properties</include>
+                    <include>schema*.properties</include>
+                </includes>
+            </resource>
+            <!-- 不将img和conf目录打包到JAR内部，保持外部可访问 -->
+        </resources>
+        
+        <plugins>
+            <!-- 强制JDK 21+ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-java</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                    <message>This project requires Java 21 or higher</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <!-- 使用标准Maven目录结构 -->
+                </configuration>
+            </plugin>
+            
+            <!-- JAR打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${mainClass}</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <!-- JDK 21+ 原生访问权限 -->
+                            <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+                            <!-- 添加模块开放权限 -->
+                            <Add-Opens>java.base/java.lang java.desktop/sun.awt java.desktop/java.awt</Add-Opens>
+                            <!-- 指定外部资源路径 -->
+                            <Class-Path>. conf/ img/</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            
+            <!-- Shade插件 - 创建包含所有依赖的fat jar，兼容Ant构建 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>${mainClass}</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+
+            
+            <!-- 资源插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <!-- 复制配置文件到target根目录 -->
+                    <execution>
+                        <id>copy-conf-to-target</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>conf</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!-- 复制图片文件到target根目录 -->
+                    <execution>
+                        <id>copy-img-to-target</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/img</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>img</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- 运行插件，支持JDK 21特性 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.4.1</version>
+                <configuration>
+                    <workingDirectory>${project.build.directory}</workingDirectory>
+                    <executable>java</executable>
+                    <arguments>
+                        <!-- JVM内存参数 -->
+                        <argument>-Xmx512M</argument>
+                        <argument>-Xms128M</argument>
+                        <argument>-XX:ReservedCodeCacheSize=128M</argument>
+                        <argument>-XX:+UseG1GC</argument>
+                        <argument>-XX:MaxGCPauseMillis=50</argument>
+                        <argument>-XX:+UseStringDeduplication</argument>
+                        <!-- JDK 21+ 模块系统参数 -->
+                        <argument>--enable-native-access=ALL-UNNAMED</argument>
+                        <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                        <argument>--add-opens=java.desktop/sun.awt=ALL-UNNAMED</argument>
+                        <argument>--add-opens=java.desktop/java.awt=ALL-UNNAMED</argument>
+                        <!-- 运行打包后的JAR -->
+                        <argument>-jar</argument>
+                        <argument>${project.build.finalName}.jar</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+            
+            <!-- JPackage插件用于创建原生可执行文件，参考Ant构建思路 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <!-- 创建便携版，仅在jpackage或jpackage-portable profile下运行 -->
+                    <execution>
+                        <id>jpackage-windows-portable</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="Creating Windows Portable version..."/>
+                                
+                                <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                <delete dir="${project.build.directory}/jpackage-windows-portable"/>
+                                <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                
+                                <!-- 准备应用程序资源 -->
+                                <mkdir dir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                      todir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                
+                                <!-- 执行jpackage命令创建应用程序镜像 -->
+                                <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-portable" failonerror="true">
+                                    <arg value="--input"/>
+                                    <arg value="input"/>
+                                    <arg value="--main-jar"/>
+                                    <arg value="${project.build.finalName}.jar"/>
+                                    <arg value="--main-class"/>
+                                    <arg value="${mainClass}"/>
+                                    <arg value="--name"/>
+                                    <arg value="Shimeji-ee"/>
+                                    <arg value="--app-version"/>
+                                    <arg value="${project.version}"/>
+                                    <arg value="--description"/>
+                                    <arg value="${project.description}"/>
+                                    <arg value="--vendor"/>
+                                    <arg value="Shimeji-ee Group"/>
+                                    <arg value="--icon"/>
+                                    <arg value="../../img/icon.ico"/>
+                                    <arg value="--type"/>
+                                    <arg value="app-image"/>
+                                    <arg value="--dest"/>
+                                    <arg value="."/>
+                                    <!-- JDK 21+ JVM参数 -->
+                                    <arg value="--java-options"/>
+                                    <arg value="-Xmx512M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-Xms128M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:+UseG1GC"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:MaxGCPauseMillis=50"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:+UseStringDeduplication"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                </exec>
+                                
+                                <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/conf">
+                                    <fileset dir="conf"/>
+                                </copy>
+                                <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/img">
+                                    <fileset dir="img"/>
+                                </copy>
+                                
+                                <!-- 创建便携版压缩包 -->
+                                <zip destfile="${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip">
+                                    <fileset dir="${project.build.directory}/jpackage-windows-portable">
+                                        <include name="Shimeji-ee/**/*"/>
+                                    </fileset>
+                                </zip>
+                                
+                                <echo message="Windows portable version created successfully!"/>
+                                <echo message="Portable zip file: ${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- 创建MSI安装程序，仅在jpackage或jpackage-msi profile下运行 -->
+                    <execution>
+                        <id>jpackage-windows-msi</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="Creating Windows MSI installer..."/>
+                                
+                                <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                <delete dir="${project.build.directory}/jpackage-windows-msi"/>
+                                <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                
+                                <!-- 准备应用程序资源 -->
+                                <mkdir dir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                      todir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                
+                                <!-- 先创建应用程序镜像 -->
+                                <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                    <arg value="--input"/>
+                                    <arg value="input"/>
+                                    <arg value="--main-jar"/>
+                                    <arg value="${project.build.finalName}.jar"/>
+                                    <arg value="--main-class"/>
+                                    <arg value="${mainClass}"/>
+                                    <arg value="--name"/>
+                                    <arg value="Shimeji-ee"/>
+                                    <arg value="--app-version"/>
+                                    <arg value="${project.version}"/>
+                                    <arg value="--description"/>
+                                    <arg value="${project.description}"/>
+                                    <arg value="--vendor"/>
+                                    <arg value="Shimeji-ee Group"/>
+                                    <arg value="--icon"/>
+                                    <arg value="../../img/icon.ico"/>
+                                    <arg value="--type"/>
+                                    <arg value="app-image"/>
+                                    <arg value="--dest"/>
+                                    <arg value="."/>
+                                    <!-- JDK 21+ JVM参数 -->
+                                    <arg value="--java-options"/>
+                                    <arg value="-Xmx512M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-Xms128M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:+UseG1GC"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:MaxGCPauseMillis=50"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="-XX:+UseStringDeduplication"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                    <arg value="--java-options"/>
+                                    <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                </exec>
+                                
+                                <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/conf">
+                                    <fileset dir="conf"/>
+                                </copy>
+                                <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/img">
+                                    <fileset dir="img"/>
+                                </copy>
+                                
+                                <!-- 然后创建MSI安装程序 -->
+                                <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                    <arg value="--app-image"/>
+                                    <arg value="Shimeji-ee"/>
+                                    <arg value="--name"/>
+                                    <arg value="Shimeji-ee"/>
+                                    <arg value="--app-version"/>
+                                    <arg value="${project.version}"/>
+                                    <arg value="--description"/>
+                                    <arg value="${project.description}"/>
+                                    <arg value="--vendor"/>
+                                    <arg value="Shimeji-ee Group"/>
+                                    <arg value="--type"/>
+                                    <arg value="msi"/>
+                                    <arg value="--dest"/>
+                                    <arg value="."/>
+                                    <arg value="--win-menu"/>
+                                    <arg value="--win-menu-group"/>
+                                    <arg value="Games"/>
+                                    <arg value="--win-shortcut"/>
+                                </exec>
+                                
+                                <!-- 将生成的MSI安装程序移动到target根目录 -->
+                                <move todir="${project.build.directory}">
+                                    <fileset dir="${project.build.directory}/jpackage-windows-msi">
+                                        <include name="*.msi"/>
+                                    </fileset>
+                                </move>
+                                
+                                <echo message="Windows MSI installer created successfully!"/>
+                                <echo message="MSI installer location: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    
+    <!-- 构建配置文件 -->
+    <profiles>
+        <!-- 开发环境profile -->
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+        </profile>
+        
+        <!-- 发布环境profile -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <!-- 打包源码 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <!-- 生成JavaDoc -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.3</version>
+                        <configuration>
+                            <source>${maven.compiler.source}</source>
+                            <target>${maven.compiler.target}</target>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- 运行profile - 实现mvnd run命令 -->
+        <profile>
+            <id>run</id>
+            <build>
+                <defaultGoal>clean package exec:exec</defaultGoal>
+                <plugins>
+                    <!-- Windows平台UTF-8编码设置 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>set-windows-utf8</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target xmlns:if="ant:if">
+                                        <!-- 在Windows系统上设置UTF-8编码 -->
+                                        <condition property="isWindows">
+                                            <os family="windows"/>
+                                        </condition>
+                                        <sequential if:set="isWindows">
+                                            <exec executable="cmd" failonerror="false" resultproperty="chcp.result">
+                                                <arg value="/c"/>
+                                                <arg value="chcp"/>
+                                                <arg value="65001"/>
+                                            </exec>
+                                            <echo message="Windows UTF-8 encoding set (chcp 65001)"/>
+                                        </sequential>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>auto-run</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- JPackage profile - 创建原生安装程序 -->
+        <profile>
+            <id>jpackage</id>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <!-- 激活jpackage构建 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <!-- 检查环境 -->
+                            <execution>
+                                <id>check-jpackage-environment</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Checking jpackage environment..."/>
+                                        
+                                        <!-- 检查操作系统 -->
+                                        <condition property="isWindows">
+                                            <os family="windows"/>
+                                        </condition>
+                                        <fail unless="isWindows" message="JPackage profile currently only supports Windows. Use '-P jpackage' on Windows only."/>
+                                        
+                                        <!-- 检查jpackage命令是否可用 -->
+                                        <exec executable="jpackage" outputproperty="jpackage.version" 
+                                              errorproperty="jpackage.error" failonerror="false" resultproperty="jpackage.result">
+                                            <arg value="--version"/>
+                                        </exec>
+                                        <condition property="jpackage.available">
+                                            <equals arg1="${jpackage.result}" arg2="0"/>
+                                        </condition>
+                                        <fail unless="jpackage.available" message="jpackage command not found. Please ensure you are using JDK 21+ and jpackage is in your PATH."/>
+                                        
+                                        <echo message="JPackage environment check passed"/>
+                                        <echo message="JPackage version: ${jpackage.version}"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- 重新定义执行：便携版构建 -->
+                            <execution>
+                                <id>jpackage-windows-portable</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Windows Portable version..."/>
+                                        
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        <delete dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        
+                                        <!-- 准备应用程序资源 -->
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                              todir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                        
+                                        <!-- 执行jpackage命令创建应用程序镜像 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-portable" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--icon"/>
+                                            <arg value="../../img/icon.ico"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <!-- JDK 21+ JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xms128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseG1GC"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:MaxGCPauseMillis=50"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseStringDeduplication"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 创建便携版压缩包 -->
+                                        <zip destfile="${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip">
+                                            <fileset dir="${project.build.directory}/jpackage-windows-portable">
+                                                <include name="Shimeji-ee/**/*"/>
+                                            </fileset>
+                                        </zip>
+                                        
+                                        <echo message="Windows portable version created successfully!"/>
+                                        <echo message="Portable zip file: ${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- 重新定义执行：MSI构建 -->
+                            <execution>
+                                <id>jpackage-windows-msi</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Windows MSI installer..."/>
+                                        
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        <delete dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        
+                                        <!-- 准备应用程序资源 -->
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                              todir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                        
+                                        <!-- 先创建应用程序镜像 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--icon"/>
+                                            <arg value="../../img/icon.ico"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <!-- JDK 21+ JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xms128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseG1GC"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:MaxGCPauseMillis=50"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseStringDeduplication"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 然后创建MSI安装程序 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                            <arg value="--app-image"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--type"/>
+                                            <arg value="msi"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <arg value="--win-menu"/>
+                                            <arg value="--win-menu-group"/>
+                                            <arg value="Games"/>
+                                            <arg value="--win-shortcut"/>
+                                        </exec>
+                                        
+                                        <!-- 将生成的MSI安装程序移动到target根目录 -->
+                                        <move todir="${project.build.directory}">
+                                            <fileset dir="${project.build.directory}/jpackage-windows-msi">
+                                                <include name="*.msi"/>
+                                            </fileset>
+                                        </move>
+                                        
+                                        <echo message="Windows MSI installer created successfully!"/>
+                                        <echo message="MSI installer location: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- 最终总结 -->
+                            <execution>
+                                <id>jpackage-summary</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message=""/>
+                                        <echo message="========================================"/>
+                                        <echo message="All Windows packages created successfully!"/>
+                                        <echo message="========================================"/>
+                                        <echo message=""/>
+                                        <echo message="Generated files:"/>
+                                        <echo message="  • Portable version: ${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip"/>
+                                        <echo message="  • MSI installer: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                                        <echo message=""/>
+                                        <echo message="Installation notes:"/>
+                                        <echo message="  • Portable version: Extract zip and run Shimeji-ee.exe"/>
+                                        <echo message="  • MSI installer: Double-click to install system-wide"/>
+                                        <echo message=""/>
+                                        <echo message="All packages include external conf/ and img/ directories for easy customization."/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- JPackage便携版专用profile -->
+        <profile>
+            <id>jpackage-portable</id>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <!-- 只创建便携版 -->
+                            <execution>
+                                <id>jpackage-windows-portable</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Windows Portable version only..."/>
+                                        
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        <delete dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
+                                        
+                                        <!-- 准备应用程序资源 -->
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                              todir="${project.build.directory}/jpackage-windows-portable/input"/>
+                                        
+                                        <!-- 执行jpackage命令创建应用程序镜像 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-portable" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--icon"/>
+                                            <arg value="../../img/icon.ico"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <!-- JDK 21+ JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xms128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseG1GC"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:MaxGCPauseMillis=50"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseStringDeduplication"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 创建便携版压缩包 -->
+                                        <zip destfile="${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip">
+                                            <fileset dir="${project.build.directory}/jpackage-windows-portable">
+                                                <include name="Shimeji-ee/**/*"/>
+                                            </fileset>
+                                        </zip>
+                                        
+                                        <echo message="Windows portable version created successfully!"/>
+                                        <echo message="Portable zip file: ${project.build.directory}/Shimeji-ee_${project.version}_Portable.zip"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- JPackage MSI专用profile -->
+        <profile>
+            <id>jpackage-msi</id>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <!-- 只创建MSI安装程序 -->
+                            <execution>
+                                <id>jpackage-windows-msi</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Windows MSI installer only..."/>
+                                        
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        <delete dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
+                                        
+                                        <!-- 准备应用程序资源 -->
+                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                              todir="${project.build.directory}/jpackage-windows-msi/input"/>
+                                        
+                                        <!-- 先创建应用程序镜像 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--icon"/>
+                                            <arg value="../../img/icon.ico"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <!-- JDK 21+ JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xms128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseG1GC"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:MaxGCPauseMillis=50"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-XX:+UseStringDeduplication"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
+                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 然后创建MSI安装程序 -->
+                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
+                                            <arg value="--app-image"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--type"/>
+                                            <arg value="msi"/>
+                                            <arg value="--dest"/>
+                                            <arg value="."/>
+                                            <arg value="--win-menu"/>
+                                            <arg value="--win-menu-group"/>
+                                            <arg value="Games"/>
+                                            <arg value="--win-shortcut"/>
+                                        </exec>
+                                        
+                                        <!-- 将生成的MSI安装程序移动到target根目录 -->
+                                        <move todir="${project.build.directory}">
+                                            <fileset dir="${project.build.directory}/jpackage-windows-msi">
+                                                <include name="*.msi"/>
+                                            </fileset>
+                                        </move>
+                                        
+                                        <echo message="Windows MSI installer created successfully!"/>
+                                        <echo message="MSI installer location: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
