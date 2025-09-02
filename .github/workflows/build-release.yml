@@ -149,8 +149,114 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
+  build-jpackage-macos-amd64:
+    needs: build-jar
+    if: needs.build-jar.outputs.build-success == 'true'
+    runs-on: macos-13  # Intel-based macOS for AMD64 builds
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          architecture: x64
+
+      - name: Install Maven Daemon (mvnd)
+        run: |
+          # Download and install mvnd for faster builds
+          curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-darwin-amd64.tar.gz -o mvnd.tar.gz
+          tar -xzf mvnd.tar.gz
+          sudo mv maven-mvnd-1.0.2-darwin-amd64 /opt/mvnd
+          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
+          mvnd --version
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build macOS AMD64 packages with mvnd
+        run: |
+          # Build using mvnd with jpackage-mac profile
+          mvnd -P jpackage-mac install
+
+      - name: Upload macOS AMD64 DMG installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-macos-amd64-dmg
+          path: target/*.dmg
+          retention-days: 1
+          if-no-files-found: warn
+
+      - name: Upload macOS AMD64 portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-macos-amd64-portable
+          path: target/Shimeji-ee_*_macOS_Portable.zip
+          retention-days: 1
+          if-no-files-found: warn
+
+  build-jpackage-macos-arm64:
+    needs: build-jar
+    if: needs.build-jar.outputs.build-success == 'true'
+    runs-on: macos-14  # Apple Silicon macOS for ARM64 builds
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          architecture: aarch64
+
+      - name: Install Maven Daemon (mvnd)
+        run: |
+          # Download and install mvnd for faster builds
+          curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-darwin-aarch64.tar.gz -o mvnd.tar.gz
+          tar -xzf mvnd.tar.gz
+          sudo mv maven-mvnd-1.0.2-darwin-aarch64 /opt/mvnd
+          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
+          mvnd --version
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build macOS ARM64 packages with mvnd
+        run: |
+          # Build using mvnd with jpackage-mac profile
+          mvnd -P jpackage-mac install
+
+      - name: Upload macOS ARM64 DMG installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-macos-arm64-dmg
+          path: target/*.dmg
+          retention-days: 1
+          if-no-files-found: warn
+
+      - name: Upload macOS ARM64 portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shimeji-ee-macos-arm64-portable
+          path: target/Shimeji-ee_*_macOS_Portable.zip
+          retention-days: 1
+          if-no-files-found: warn
+
   create-release:
-    needs: [build-jar, build-jpackage-windows]
+    needs: [build-jar, build-jpackage-windows, build-jpackage-macos-amd64, build-jpackage-macos-arm64]
     runs-on: ubuntu-latest
     if: needs.build-jar.outputs.build-success == 'true'
 
@@ -161,7 +267,7 @@ jobs:
       - name: Download all platform packages
         uses: actions/download-artifact@v4
         with:
-          pattern: Shimeji-ee-windows-*
+          pattern: Shimeji-ee-*
           merge-multiple: true
 
       - name: Check for existing pre-release
@@ -195,18 +301,24 @@ jobs:
           # Generate release notes
           BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S UTC')
           cat > release_notes.md << EOF
-          # Shimeji-ee Windows Native Builds / Shimeji-ee Windows 原生版本
+          # Shimeji-ee Native Builds / Shimeji-ee 原生版本
           
           **Build Date / 构建日期:** $BUILD_TIME  
           **Commit / 提交:** ${{ github.sha }}
           
           ## What's included / 包含内容:
           
-          ### Native Windows packages built with jpackage / 使用 jpackage 构建的 Windows 原生包:
+          ### Native packages built with jpackage / 使用 jpackage 构建的原生包:
           
           #### Windows (x86 & x64 支持)
           - **Shimeji-ee.msi** - Windows MSI installer with embedded JRE / Windows MSI 安装程序，含嵌入式 JRE
           - **Shimeji-ee_2.0.0_Portable.zip** - Windows portable version with embedded JRE / Windows 便携版，含嵌入式 JRE
+          
+          #### macOS
+          - **Shimeji-ee-amd64.dmg** - macOS Intel (x64) DMG installer with embedded JRE / macOS Intel (x64) DMG 安装程序，含嵌入式 JRE
+          - **Shimeji-ee_2.0.0_macOS_Portable-amd64.zip** - macOS Intel (x64) portable version / macOS Intel (x64) 便携版
+          - **Shimeji-ee-arm64.dmg** - macOS Apple Silicon (ARM64) DMG installer with embedded JRE / macOS Apple Silicon (ARM64) DMG 安装程序，含嵌入式 JRE
+          - **Shimeji-ee_2.0.0_macOS_Portable-arm64.zip** - macOS Apple Silicon (ARM64) portable version / macOS Apple Silicon (ARM64) 便携版
           
           ## Installation / 安装说明:
           
@@ -216,6 +328,14 @@ jobs:
           2. **Portable Version / 便携版**: Extract the portable zip and run Shimeji-ee.exe
              解压便携版 zip 并运行 Shimeji-ee.exe
           
+          ### macOS (新增支持!)
+          1. **DMG Installer / DMG 安装程序**: Download the appropriate DMG for your Mac architecture:
+             下载适合您 Mac 架构的 DMG：
+             - Intel Macs (x64): Download the amd64 DMG / Intel Mac (x64)：下载 amd64 DMG
+             - Apple Silicon Macs (M1/M2/M3): Download the arm64 DMG / Apple Silicon Mac (M1/M2/M3)：下载 arm64 DMG
+          2. **Portable Version / 便携版**: Extract the portable zip and run Shimeji-ee.app
+             解压便携版 zip 并运行 Shimeji-ee.app
+          
           **No Java installation required! All packages include embedded JRE 21.**
           **无需安装 Java！所有包都包含嵌入式 JRE 21。**
           
@@ -223,7 +343,9 @@ jobs:
           - **JRE Version / JRE 版本**: OpenJDK 21 (embedded in native packages)
           - **Build Tool / 构建工具**: Maven Daemon (mvnd) + jpackage
           - **Packaging / 打包方式**: Native application bundles with embedded runtime
-          - **Architecture / 架构**: Supports both x86 and x64 Windows systems
+          - **Architecture / 架构**: 
+            - Windows: Supports both x86 and x64 systems / 支持 x86 和 x64 系统
+            - macOS: Separate builds for Intel (AMD64) and Apple Silicon (ARM64) / Intel (AMD64) 和 Apple Silicon (ARM64) 分别构建
           - **File Size / 文件大小**: Larger than JAR-only due to embedded JRE, but no Java installation required
           
           ## Advantages of jpackage builds / jpackage 构建的优势:
@@ -231,7 +353,9 @@ jobs:
           - **Native performance / 原生性能**: Better startup time and system integration
           - **Easy distribution / 简易分发**: Single file/folder contains everything needed
           - **System integration / 系统集成**: Proper application registration and desktop shortcuts
-          - **Wide compatibility / 广泛兼容性**: Works on Windows 10/11, both x86 and x64
+          - **Wide compatibility / 广泛兼容性**: 
+            - Windows 10/11 (both x86 and x64)
+            - macOS 10.15+ (Intel and Apple Silicon)
           
           ## Notes / 注意事项:
           - jpackage builds are larger due to embedded JRE but provide better user experience
@@ -240,6 +364,8 @@ jobs:
             所有包都包含适用于 Java 21+ 兼容性的正确 JVM 参数
           - Built using Maven Daemon (mvnd) for faster build times
             使用 Maven Daemon (mvnd) 构建以获得更快的构建时间
+          - macOS builds are architecture-specific for optimal performance
+            macOS 构建针对特定架构优化以获得最佳性能
           
           This is an automated pre-release build generated at $BUILD_TIME using jpackage technology.
           
@@ -277,6 +403,14 @@ jobs:
           fi
           if ls *Portable*.zip 1> /dev/null 2>&1; then
             FILES_TO_UPLOAD="$FILES_TO_UPLOAD *Portable*.zip"
+          fi
+          
+          # Check for macOS files
+          if ls *.dmg 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *.dmg"
+          fi
+          if ls *macOS*.zip 1> /dev/null 2>&1; then
+            FILES_TO_UPLOAD="$FILES_TO_UPLOAD *macOS*.zip"
           fi
           
           echo "Files to upload: $FILES_TO_UPLOAD"
