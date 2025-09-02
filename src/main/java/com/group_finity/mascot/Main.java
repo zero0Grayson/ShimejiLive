@@ -23,6 +23,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JCheckBoxMenuItem;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -79,6 +81,14 @@ import javax.swing.event.PopupMenuListener;
  */
 public class Main {
     private static final Logger log = Logger.getLogger(Main.class.getName());
+    
+    public static final Path CONFIG_DIRECTORY = Paths.get("conf");
+    public static final Path IMAGE_DIRECTORY = Paths.get("img");
+    public static final Path SOUND_DIRECTORY = Paths.get("sound");
+    public static final Path SETTINGS_FILE = CONFIG_DIRECTORY.resolve("settings.properties");
+    public static final Path LOGGING_FILE = CONFIG_DIRECTORY.resolve("logging.properties");
+    public static final Path ICON_FILE = IMAGE_DIRECTORY.resolve("icon.png");
+    
     // Action that matches the "Gather Around Mouse!" context menu command
     static final String BEHAVIOR_GATHER = "ChaseMouse";
 

@@ -306,6 +306,14 @@ class WindowsEnvironment extends Environment {
         windowTitles = null;
     }
 
+    @Override
+    public long getActiveWindowId() {
+        if (activeIEobject != null) {
+            return Pointer.nativeValue(activeIEobject);
+        }
+        return 0;
+    }
+
     // private void dumpWindowInformation( )
     // {
     // final StringBuilder text = new StringBuilder( );

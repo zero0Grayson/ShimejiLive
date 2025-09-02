@@ -58,6 +58,8 @@ import com.group_finity.mascot.sound.Sounds;
 public class Mascot {
     private static final Logger log = Logger.getLogger(Mascot.class.getName());
 
+    public static final boolean DRAW_DEBUG = false;
+
     private static final AtomicInteger lastId = new AtomicInteger();
 
     private final int id;
