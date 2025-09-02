@@ -48,18 +48,37 @@ public abstract class NativeFactory {
             } else if (Platform.isMac()) {
                 instance = new com.group_finity.mascot.mac.NativeFactoryImpl();
             } else if (/* Platform.isLinux() */ Platform.isX11()) {
-                // Because Linux uses X11, this functions as the Linux support.
-                instance = new com.group_finity.mascot.x11.NativeFactoryImpl();
+                // Check if running under Wayland
+                if (isWayland()) {
+                    instance = new com.group_finity.mascot.wayland.NativeFactoryImpl();
+                } else {
+                    // Because Linux uses X11, this functions as the Linux support.
+                    instance = new com.group_finity.mascot.x11.NativeFactoryImpl();
+                }
             } else {
                 // Fallback to generic for other platforms
                 instance = new com.group_finity.mascot.generic.NativeFactoryImpl();
             }
         } else if (environment.equals("virtual")) {
             instance = new com.group_finity.mascot.virtual.NativeFactoryImpl();
+        } else if (environment.equals("wayland")) {
+            // Force Wayland mode
+            instance = new com.group_finity.mascot.wayland.NativeFactoryImpl();
         } else {
             // Fallback to generic
             instance = new com.group_finity.mascot.generic.NativeFactoryImpl();
         }
+    }
+
+    /**
+     * Check if running under Wayland
+     */
+    private static boolean isWayland() {
+        String waylandDisplay = System.getenv("WAYLAND_DISPLAY");
+        String sessionType = System.getenv("XDG_SESSION_TYPE");
+        
+        return (waylandDisplay != null && !waylandDisplay.isEmpty()) ||
+               (sessionType != null && sessionType.equals("wayland"));
     }
 
     /**

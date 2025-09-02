@@ -662,6 +662,17 @@ public class Main {
     }
 
     /**
+     * 检查当前环境是否为Wayland
+     */
+    private static boolean isWaylandEnvironment() {
+        String waylandDisplay = System.getenv("WAYLAND_DISPLAY");
+        String sessionType = System.getenv("XDG_SESSION_TYPE");
+        
+        return (waylandDisplay != null && !waylandDisplay.isEmpty()) ||
+               (sessionType != null && sessionType.equals("wayland"));
+    }
+
+    /**
      * 检查鼠标事件是否应该触发弹出菜单（包含 macOS 兼容性处理）
      */
     private static boolean shouldShowPopupMenu(MouseEvent event) {
@@ -1093,9 +1104,29 @@ public class Main {
                 }
             });
 
-            // Show tray icon
-            SystemTray.getSystemTray().add(icon);
-            this.trayIcon = icon;
+            // Check if system tray is supported (especially important for Wayland)
+            if (SystemTray.isSupported()) {
+                SystemTray.getSystemTray().add(icon);
+                this.trayIcon = icon;
+                log.log(Level.INFO, "System tray icon created successfully");
+            } else {
+                log.log(Level.WARNING, "System tray is not supported on this platform (possibly Wayland)");
+                this.trayIcon = icon; // Keep the icon for other uses
+                
+                // Show a notification that tray is not available but app is running
+                if (isWaylandEnvironment()) {
+                    System.out.println("注意：在Wayland环境下，系统托盘功能不可用。");
+                    System.out.println("您仍然可以通过右键点击桌宠来访问菜单功能。");
+                } else {
+                    System.out.println("注意：系统托盘功能在当前环境下不可用。");
+                }
+            }
+        } catch (final UnsupportedOperationException e) {
+            // This specifically catches Wayland UnsupportedOperationException
+            log.log(Level.WARNING, "System tray not supported in Wayland environment", e);
+            this.trayIcon = null;
+            System.out.println("注意：在Wayland环境下，系统托盘功能不可用。");
+            System.out.println("您仍然可以通过右键点击桌宠来访问菜单功能。");
         } catch (final AWTException e) {
             log.log(Level.SEVERE, "Failed to create tray icon", e);
             Main.showError(languageBundle.getString("FailedDisplaySystemTrayErrorMessage") + "\n"
