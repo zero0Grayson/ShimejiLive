@@ -171,8 +171,11 @@ jobs:
           curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-darwin-amd64.tar.gz -o mvnd.tar.gz
           tar -xzf mvnd.tar.gz
           sudo mv maven-mvnd-1.0.2-darwin-amd64 /opt/mvnd
-          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
-          mvnd --version
+          # Set MVND_HOME environment variable
+          echo "MVND_HOME=/opt/mvnd" >> $GITHUB_ENV
+          echo "/opt/mvnd/bin" >> $GITHUB_PATH
+          # Test mvnd installation
+          /opt/mvnd/bin/mvnd --version
 
       - name: Cache Maven dependencies
         uses: actions/cache@v4
@@ -184,7 +187,7 @@ jobs:
       - name: Build macOS AMD64 packages with mvnd
         run: |
           # Build using mvnd with jpackage-mac profile
-          mvnd -P jpackage-mac install
+          /opt/mvnd/bin/mvnd -P jpackage-mac install
 
       - name: Upload macOS AMD64 DMG installer
         uses: actions/upload-artifact@v4
@@ -224,8 +227,11 @@ jobs:
           curl -L https://github.com/apache/maven-mvnd/releases/download/1.0.2/maven-mvnd-1.0.2-darwin-aarch64.tar.gz -o mvnd.tar.gz
           tar -xzf mvnd.tar.gz
           sudo mv maven-mvnd-1.0.2-darwin-aarch64 /opt/mvnd
-          sudo ln -s /opt/mvnd/bin/mvnd /usr/local/bin/mvnd
-          mvnd --version
+          # Set MVND_HOME environment variable
+          echo "MVND_HOME=/opt/mvnd" >> $GITHUB_ENV
+          echo "/opt/mvnd/bin" >> $GITHUB_PATH
+          # Test mvnd installation
+          /opt/mvnd/bin/mvnd --version
 
       - name: Cache Maven dependencies
         uses: actions/cache@v4
@@ -237,7 +243,7 @@ jobs:
       - name: Build macOS ARM64 packages with mvnd
         run: |
           # Build using mvnd with jpackage-mac profile
-          mvnd -P jpackage-mac install
+          /opt/mvnd/bin/mvnd -P jpackage-mac install
 
       - name: Upload macOS ARM64 DMG installer
         uses: actions/upload-artifact@v4
