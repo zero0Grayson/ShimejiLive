@@ -435,7 +435,7 @@
                                     <workingDirectory>${project.build.directory}</workingDirectory>
                                     <arguments>
                                         <argument>-Command</argument>
-                                        <argument>Compress-Archive -Path jpackage-windows-portable/Shimeji-ee -DestinationPath Shimeji-ee_${project.version}_Portable.zip -Force</argument>
+                                        <argument>Compress-Archive -Path jpackage-windows-portable/Shimeji-ee -DestinationPath Shimeji-ee_${project.version}_Windows_Portable.zip -Force</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

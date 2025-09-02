@@ -145,7 +145,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Shimeji-ee-windows-portable
-          path: target/Shimeji-ee_*_Portable.zip
+          path: target/Shimeji-ee_*_Windows_Portable.zip
           retention-days: 1
           if-no-files-found: warn
 
@@ -318,7 +318,7 @@ jobs:
           
           #### Windows (x86 & x64 支持)
           - **Shimeji-ee.msi** - Windows MSI installer with embedded JRE / Windows MSI 安装程序，含嵌入式 JRE
-          - **Shimeji-ee_2.0.0_Portable.zip** - Windows portable version with embedded JRE / Windows 便携版，含嵌入式 JRE
+          - **Shimeji-ee_2.0.0_Windows_Portable.zip** - Windows portable version with embedded JRE / Windows 便携版，含嵌入式 JRE
           
           #### macOS
           - **Shimeji-ee-amd64.dmg** - macOS Intel (x64) DMG installer with embedded JRE / macOS Intel (x64) DMG 安装程序，含嵌入式 JRE
@@ -441,7 +441,7 @@ jobs:
             --prerelease
           
           # Upload each file individually
-          for file in Shimeji-ee*.msi Shimeji-ee*Portable*.zip Shimeji-ee*.dmg Shimeji-ee*macOS*.zip; do
+          for file in Shimeji-ee*.msi Shimeji-ee*Windows_Portable*.zip Shimeji-ee*.dmg Shimeji-ee*macOS*.zip; do
             if [ -f "$file" ]; then
               echo "Uploading: $file"
               gh release upload "${{ steps.release_info.outputs.release_tag }}" "$file" || echo "Failed to upload $file"
