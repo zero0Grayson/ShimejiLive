@@ -292,5 +292,95 @@
                 </plugins>
             </build>
         </profile>
+        
+        <!-- jpackage 配置文件 -->
+        <profile>
+            <id>jpackage</id>
+            <properties>
+                <!-- jpackage 参数 -->
+                <jpackage.main-jar>lib/Shimeji-ee.jar</jpackage.main-jar>
+                <jpackage.main-class>com.group_finity.mascot.Main</jpackage.main-class>
+                <jpackage.app-version>2.0.0</jpackage.app-version>
+                <jpackage.description>A desktop mascot that freely wanders and plays around the screen</jpackage.description>
+                <jpackage.vendor>Group Finity</jpackage.vendor>
+                <jpackage.copyright>Copyright (c) 2009 Group Finity</jpackage.copyright>
+                
+                <!-- JVM 选项 -->
+                <jpackage.jvm.options>
+                    --enable-native-access=ALL-UNNAMED
+                    --add-opens=java.base/java.lang=ALL-UNNAMED
+                    --add-opens=java.desktop/sun.awt=ALL-UNNAMED
+                    --add-opens=java.desktop/java.awt=ALL-UNNAMED
+                    -Xmx512M
+                    -Xms128M
+                    -XX:+UseG1GC
+                </jpackage.jvm.options>
+                
+                <!-- Windows 特定选项 -->
+                <jpackage.windows.menu>true</jpackage.windows.menu>
+                <jpackage.windows.shortcut>true</jpackage.windows.shortcut>
+                <jpackage.windows.dir-chooser>true</jpackage.windows.dir-chooser>
+                <jpackage.windows.upgrade-uuid>12345678-1234-1234-1234-123456789012</jpackage.windows.upgrade-uuid>
+                
+                <!-- Linux 特定选项 -->
+                <jpackage.linux.shortcut>true</jpackage.linux.shortcut>
+                <jpackage.linux.menu-group>Games</jpackage.linux.menu-group>
+                
+                <!-- macOS 特定选项 -->
+                <jpackage.mac.sign>true</jpackage.mac.sign>
+            </properties>
+            
+            <build>
+                <plugins>
+                    <!-- 准备 jpackage 输入目录 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <!-- 创建 jpackage 输入目录 -->
+                            <execution>
+                                <id>prepare-jpackage-input</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}</directory>
+                                            <includes>
+                                                <include>conf/</include>
+                                                <include>img/</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <!-- 复制 JAR 到 lib 目录 -->
+                            <execution>
+                                <id>copy-jar-to-lib</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/jpackage-input/lib</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}</directory>
+                                            <includes>
+                                                <include>Shimeji-ee.jar</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
