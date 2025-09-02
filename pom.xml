@@ -289,6 +289,16 @@
                         <argument>${project.build.finalName}.jar</argument>
                     </arguments>
                 </configuration>
+                <!-- 明确设置执行阶段，防止默认绑定到不当的生命周期 -->
+                <executions>
+                    <execution>
+                        <id>default-run</id>
+                        <phase>none</phase> <!-- 默认不执行，只在特定profile中激活 -->
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             
             <!-- JPackage插件用于创建原生可执行文件，参考Ant构建思路 -->
@@ -863,6 +873,11 @@
                 <os>
                     <family>mac</family>
                 </os>
+                <!-- 只在明确指定run goal时激活 -->
+                <property>
+                    <name>autoRun</name>
+                    <value>true</value>
+                </property>
             </activation>
             <build>
                 <defaultGoal>clean package exec:exec</defaultGoal>
@@ -914,782 +929,6 @@
                 </plugins>
             </build>
         </profile>
-        
-        <!-- JPackage profile - 创建原生安装程序 (跨平台) -->
-        <profile>
-            <id>jpackage</id>
-            <build>
-                <defaultGoal>clean package</defaultGoal>
-                <plugins>
-                    <!-- 禁用自动运行 -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>auto-run</id>
-                                <phase>none</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    
-                    <!-- 激活jpackage构建 -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <!-- 检查环境 -->
-                            <execution>
-                                <id>check-jpackage-environment</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target>
-                                        <echo message="Checking jpackage environment..."/>
-                                        
-                                        <!-- 检查操作系统并设置属性 -->
-                                        <condition property="isWindows">
-                                            <os family="windows"/>
-                                        </condition>
-                                        <condition property="isLinux">
-                                            <and>
-                                                <os family="unix"/>
-                                                <not>
-                                                    <os family="mac"/>
-                                                </not>
-                                            </and>
-                                        </condition>
-                                        <condition property="isMacOS">
-                                            <os family="mac"/>
-                                        </condition>
-                                        
-                                        <!-- 检查jpackage命令是否可用 -->
-                                        <exec executable="jpackage" outputproperty="jpackage.version" 
-                                              errorproperty="jpackage.error" failonerror="false" resultproperty="jpackage.result">
-                                            <arg value="--version"/>
-                                        </exec>
-                                        <condition property="jpackage.available">
-                                            <equals arg1="${jpackage.result}" arg2="0"/>
-                                        </condition>
-                                        <fail unless="jpackage.available" message="jpackage command not found. Please ensure you are using JDK 21+ and jpackage is in your PATH."/>
-                                        
-                                        <echo message="JPackage environment check passed"/>
-                                        <echo message="JPackage version: ${jpackage.version}"/>
-                                        
-                                        <!-- 显示平台信息 -->
-                                        <condition property="platform.name" value="Windows" else="">
-                                            <isset property="isWindows"/>
-                                        </condition>
-                                        <condition property="platform.name" value="Linux" else="${platform.name}">
-                                            <isset property="isLinux"/>
-                                        </condition>
-                                        <condition property="platform.name" value="macOS" else="${platform.name}">
-                                            <isset property="isMacOS"/>
-                                        </condition>
-                                        <echo message="Building for platform: ${platform.name}"/>
-                                    </target>
-                                </configuration>
-                            </execution>
-                            
-                            <!-- Windows 构建 -->
-                            <execution>
-                                <id>jpackage-windows</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target if="isWindows">
-                                        <echo message="Creating Windows packages..."/>
-                                        
-                                        <!-- 创建便携版 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
-                                        <delete dir="${project.build.directory}/jpackage-windows-portable"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-portable/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-windows-portable/input"/>
-                                        
-                                        <!-- 执行jpackage命令创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-portable" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.ico"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <!-- Windows特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.dpiaware=false"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dfile.encoding=UTF-8"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-windows-portable/Shimeji-ee/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 创建便携版压缩包 -->
-                                        <zip destfile="${project.build.directory}/Shimeji-ee_${project.version}_Windows_Portable.zip">
-                                            <fileset dir="${project.build.directory}/jpackage-windows-portable">
-                                                <include name="Shimeji-ee/**/*"/>
-                                            </fileset>
-                                        </zip>
-                                        
-                                        <!-- 创建MSI安装程序 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
-                                        <delete dir="${project.build.directory}/jpackage-windows-msi"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-windows-msi/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-windows-msi/input"/>
-                                        
-                                        <!-- 先创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.ico"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <!-- Windows特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.dpiaware=false"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dfile.encoding=UTF-8"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-windows-msi/Shimeji-ee/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 然后创建MSI安装程序 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-windows-msi" failonerror="true">
-                                            <arg value="--app-image"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--type"/>
-                                            <arg value="msi"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <arg value="--win-menu"/>
-                                            <arg value="--win-menu-group"/>
-                                            <arg value="Games"/>
-                                            <arg value="--win-shortcut"/>
-                                        </exec>
-                                        
-                                        <!-- 将生成的MSI安装程序重命名并移动到target根目录 -->
-                                        <move todir="${project.build.directory}">
-                                            <fileset dir="${project.build.directory}/jpackage-windows-msi">
-                                                <include name="*.msi"/>
-                                            </fileset>
-                                            <mapper type="glob" from="*.msi" to="Shimeji-ee_${project.version}_Windows.msi"/>
-                                        </move>
-                                        
-                                        <echo message="Windows packages created successfully!"/>
-                                        <echo message="Portable zip: ${project.build.directory}/Shimeji-ee_${project.version}_Windows_Portable.zip"/>
-                                        <echo message="MSI installer: ${project.build.directory}/Shimeji-ee_${project.version}_Windows.msi"/>
-                                    </target>
-                                </configuration>
-                            </execution>
-                            
-                            <!-- Linux 构建 -->
-                            <execution>
-                                <id>jpackage-linux</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target if="isLinux">
-                                        <echo message="Creating Linux packages..."/>
-                                        
-                                        <!-- 创建便携版 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-portable"/>
-                                        <delete dir="${project.build.directory}/jpackage-linux-portable"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-portable"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-portable/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-linux-portable/input"/>
-                                        
-                                        <!-- 执行jpackage命令创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-linux-portable" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.png"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED"/>
-                                            <!-- Linux特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Djava.awt.headless=false"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.xrender=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.opengl=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.d3d=false"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-linux-portable/Shimeji-ee/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-linux-portable/Shimeji-ee/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 创建便携版tar.gz压缩包 -->
-                                        <tar destfile="${project.build.directory}/Shimeji-ee_${project.version}_Linux_Portable.tar.gz" compression="gzip">
-                                            <fileset dir="${project.build.directory}/jpackage-linux-portable">
-                                                <include name="Shimeji-ee/**/*"/>
-                                            </fileset>
-                                        </tar>
-                                        
-                                        <!-- 创建DEB包 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-deb"/>
-                                        <delete dir="${project.build.directory}/jpackage-linux-deb"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-deb"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-linux-deb/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-linux-deb/input"/>
-                                        
-                                        <!-- 先创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-linux-deb" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.png"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED"/>
-                                            <!-- Linux特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Djava.awt.headless=false"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.xrender=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.opengl=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dsun.java2d.d3d=false"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-linux-deb/Shimeji-ee/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-linux-deb/Shimeji-ee/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 然后创建DEB包 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-linux-deb" failonerror="true">
-                                            <arg value="--app-image"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--name"/>
-                                            <arg value="shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--type"/>
-                                            <arg value="deb"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <arg value="--linux-menu-group"/>
-                                            <arg value="Games"/>
-                                            <arg value="--linux-shortcut"/>
-                                        </exec>
-                                        
-                                        <!-- 将生成的DEB包重命名并移动到target根目录 -->
-                                        <move todir="${project.build.directory}">
-                                            <fileset dir="${project.build.directory}/jpackage-linux-deb">
-                                                <include name="*.deb"/>
-                                            </fileset>
-                                            <mapper type="glob" from="*.deb" to="Shimeji-ee_${project.version}_Linux.deb"/>
-                                        </move>
-                                        
-                                        <echo message="Linux packages created successfully!"/>
-                                        <echo message="Portable tar.gz: ${project.build.directory}/Shimeji-ee_${project.version}_Linux_Portable.tar.gz"/>
-                                        <echo message="DEB package: ${project.build.directory}/Shimeji-ee_${project.version}_Linux.deb"/>
-                                    </target>
-                                </configuration>
-                            </execution>
-                            
-                            <!-- macOS 构建 -->
-                            <execution>
-                                <id>jpackage-macos</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target if="isMacOS">
-                                        <echo message="Creating macOS packages..."/>
-                                        
-                                        <!-- 创建便携版 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-portable"/>
-                                        <delete dir="${project.build.directory}/jpackage-macos-portable"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-portable"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-portable/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-macos-portable/input"/>
-                                        
-                                        <!-- 执行jpackage命令创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-macos-portable" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.png"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED"/>
-                                            <!-- macOS特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dapple.laf.useScreenMenuBar=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dapple.awt.application.name=Shimeji-Live"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xdock:name=Shimeji-Live"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-macos-portable/Shimeji-ee.app/Contents/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-macos-portable/Shimeji-ee.app/Contents/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 创建便携版tar.gz压缩包 -->
-                                        <tar destfile="${project.build.directory}/Shimeji-ee_${project.version}_macOS_Portable.tar.gz" compression="gzip">
-                                            <fileset dir="${project.build.directory}/jpackage-macos-portable">
-                                                <include name="Shimeji-ee.app/**/*"/>
-                                            </fileset>
-                                        </tar>
-                                        
-                                        <!-- 创建DMG包 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-dmg"/>
-                                        <delete dir="${project.build.directory}/jpackage-macos-dmg"/>
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-dmg"/>
-                                        
-                                        <!-- 准备应用程序资源 -->
-                                        <mkdir dir="${project.build.directory}/jpackage-macos-dmg/input"/>
-                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
-                                              todir="${project.build.directory}/jpackage-macos-dmg/input"/>
-                                        
-                                        <!-- 先创建应用程序镜像 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-macos-dmg" failonerror="true">
-                                            <arg value="--input"/>
-                                            <arg value="input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="${mainClass}"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--icon"/>
-                                            <arg value="../../img/icon.png"/>
-                                            <arg value="--type"/>
-                                            <arg value="app-image"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                            <!-- JDK 21+ JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xmx512M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xms128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:ReservedCodeCacheSize=128M"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseG1GC"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:MaxGCPauseMillis=50"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-XX:+UseStringDeduplication"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--enable-native-access=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED"/>
-                                            <!-- macOS特定JVM参数 -->
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dapple.laf.useScreenMenuBar=true"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Dapple.awt.application.name=Shimeji-Live"/>
-                                            <arg value="--java-options"/>
-                                            <arg value="-Xdock:name=Shimeji-Live"/>
-                                        </exec>
-                                        
-                                        <!-- 复制配置和资源文件到应用程序根目录（与可执行文件同级） -->
-                                        <copy todir="${project.build.directory}/jpackage-macos-dmg/Shimeji-ee.app/Contents/conf">
-                                            <fileset dir="conf"/>
-                                        </copy>
-                                        <copy todir="${project.build.directory}/jpackage-macos-dmg/Shimeji-ee.app/Contents/img">
-                                            <fileset dir="img"/>
-                                        </copy>
-                                        
-                                        <!-- 然后创建DMG包 -->
-                                        <exec executable="jpackage" dir="${project.build.directory}/jpackage-macos-dmg" failonerror="true">
-                                            <arg value="--app-image"/>
-                                            <arg value="Shimeji-ee.app"/>
-                                            <arg value="--name"/>
-                                            <arg value="Shimeji-ee"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${project.version}"/>
-                                            <arg value="--description"/>
-                                            <arg value="${project.description}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="Shimeji-ee Group"/>
-                                            <arg value="--type"/>
-                                            <arg value="dmg"/>
-                                            <arg value="--dest"/>
-                                            <arg value="."/>
-                                        </exec>
-                                        
-                                        <!-- 将生成的DMG包重命名并移动到target根目录 -->
-                                        <move todir="${project.build.directory}">
-                                            <fileset dir="${project.build.directory}/jpackage-macos-dmg">
-                                                <include name="*.dmg"/>
-                                            </fileset>
-                                            <mapper type="glob" from="*.dmg" to="Shimeji-ee_${project.version}_macOS.dmg"/>
-                                        </move>
-                                        
-                                        <echo message="macOS packages created successfully!"/>
-                                        <echo message="Portable tar.gz: ${project.build.directory}/Shimeji-ee_${project.version}_macOS_Portable.tar.gz"/>
-                                        <echo message="DMG package: ${project.build.directory}/Shimeji-ee_${project.version}_macOS.dmg"/>
-                                    </target>
-                                </configuration>
-                            </execution>
-                            
-                            <!-- 最终总结 -->
-                            <execution>
-                                <id>jpackage-summary</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target>
-                                        <echo message=""/>
-                                        <echo message="========================================"/>
-                                        <echo message="JPackage build completed successfully!"/>
-                                        <echo message="========================================"/>
-                                        <echo message=""/>
-                                        
-                                        <!-- 检测操作系统并设置属性 -->
-                                        <condition property="isWindows">
-                                            <os family="windows"/>
-                                        </condition>
-                                        <condition property="isLinux">
-                                            <and>
-                                                <os family="unix"/>
-                                                <not>
-                                                    <os family="mac"/>
-                                                </not>
-                                            </and>
-                                        </condition>
-                                        <condition property="isMacOS">
-                                            <os family="mac"/>
-                                        </condition>
-                                        
-                                        <!-- 设置平台名称 -->
-                                        <condition property="platform.name" value="Windows">
-                                            <isset property="isWindows"/>
-                                        </condition>
-                                        <condition property="platform.name" value="Linux">
-                                            <and>
-                                                <isset property="isLinux"/>
-                                                <not>
-                                                    <isset property="platform.name"/>
-                                                </not>
-                                            </and>
-                                        </condition>
-                                        <condition property="platform.name" value="macOS">
-                                            <and>
-                                                <isset property="isMacOS"/>
-                                                <not>
-                                                    <isset property="platform.name"/>
-                                                </not>
-                                            </and>
-                                        </condition>
-                                        <property name="platform.name" value="Unknown"/>
-                                        
-                                        <echo message="Platform: ${platform.name}"/>
-                                        <echo message=""/>
-                                        
-                                        <!-- Windows 特定信息 -->
-                                        <antcall target="show-windows-info"/>
-                                        <!-- Linux 特定信息 -->
-                                        <antcall target="show-linux-info"/>
-                                        <!-- macOS 特定信息 -->
-                                        <antcall target="show-macos-info"/>
-                                        
-                                        <echo message=""/>
-                                        <echo message="All packages include external conf/ and img/ directories for easy customization."/>
-                                        <echo message="JDK 21+ is required to run the application."/>
-                                    </target>
-                                    
-                                    <!-- Windows 信息显示目标 -->
-                                    <target name="show-windows-info" if="isWindows">
-                                        <echo message="Generated Windows packages:"/>
-                                        <echo message="  • Portable ZIP: ${project.build.directory}/Shimeji-ee_${project.version}_Windows_Portable.zip"/>
-                                        <echo message="  • MSI Installer: ${project.build.directory}/Shimeji-ee_${project.version}_Windows.msi"/>
-                                        <echo message=""/>
-                                        <echo message="Installation notes:"/>
-                                        <echo message="  • Portable: Extract ZIP and run Shimeji-ee.exe"/>
-                                        <echo message="  • MSI: Double-click to install system-wide"/>
-                                    </target>
-                                    
-                                    <!-- Linux 信息显示目标 -->
-                                    <target name="show-linux-info" if="isLinux">
-                                        <echo message="Generated Linux packages:"/>
-                                        <echo message="  • Portable TAR.GZ: ${project.build.directory}/Shimeji-ee_${project.version}_Linux_Portable.tar.gz"/>
-                                        <echo message="  • DEB Package: ${project.build.directory}/Shimeji-ee_${project.version}_Linux.deb"/>
-                                        <echo message=""/>
-                                        <echo message="Installation notes:"/>
-                                        <echo message="  • Portable: Extract tar.gz and run ./Shimeji-ee/bin/Shimeji-ee"/>
-                                        <echo message="  • DEB: sudo dpkg -i Shimeji-ee_${project.version}_Linux.deb"/>
-                                    </target>
-                                    
-                                    <!-- macOS 信息显示目标 -->
-                                    <target name="show-macos-info" if="isMacOS">
-                                        <echo message="Generated macOS packages:"/>
-                                        <echo message="  • Portable TAR.GZ: ${project.build.directory}/Shimeji-ee_${project.version}_macOS_Portable.tar.gz"/>
-                                        <echo message="  • DMG Image: ${project.build.directory}/Shimeji-ee_${project.version}_macOS.dmg"/>
-                                        <echo message=""/>
-                                        <echo message="Installation notes:"/>
-                                        <echo message="  • Portable: Extract tar.gz and run Shimeji-ee.app"/>
-                                        <echo message="  • DMG: Mount DMG and drag Shimeji-ee.app to Applications"/>
-                                    </target>
-                                </configuration>
-                            </execution>
-        </executions>
-    </plugin>
-</plugins>
-</build>
-</profile>
-
 <!-- JPackage Windows专用profile -->
 <profile>
     <id>jpackage-windows</id>
@@ -2050,6 +1289,350 @@
                                         
                                         <echo message="Windows MSI installer created successfully!"/>
                                         <echo message="MSI installer location: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- 简化的平台专用打包Profiles -->
+        
+        <!-- Windows简单打包profile -->
+        <profile>
+            <id>jpackage-win</id>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <!-- 禁用自动运行 -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>auto-run</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Windows packages..."/>
+                                        
+                                        <!-- 创建便携版App Image -->
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/portable"/>
+                                            <arg value="--icon"/>
+                                            <arg value="img/icon.ico"/>
+                                            <!-- 优化的JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Dfile.encoding=UTF-8"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Dsun.java2d.dpiaware=false"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置文件 -->
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 创建MSI安装包 -->
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--app-image"/>
+                                            <arg value="${project.build.directory}/portable/Shimeji-ee"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="msi"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="--win-menu"/>
+                                            <arg value="--win-shortcut"/>
+                                        </exec>
+                                        
+                                        <echo message="Windows packages created:"/>
+                                        <echo message="  Portable: ${project.build.directory}/portable/Shimeji-ee/"/>
+                                        <echo message="  MSI installer: ${project.build.directory}/Shimeji-ee-${project.version}.msi"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Linux简单打包profile -->
+        <profile>
+            <id>jpackage-linux-simple</id>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <!-- 禁用自动运行 -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>auto-run</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating Linux packages..."/>
+                                        
+                                        <!-- 创建便携版App Image -->
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/portable"/>
+                                            <arg value="--icon"/>
+                                            <arg value="img/icon.png"/>
+                                            <!-- 优化的JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Djava.awt.headless=false"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Dsun.java2d.xrender=true"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置文件 -->
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 创建DEB包 -->
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--app-image"/>
+                                            <arg value="${project.build.directory}/portable/Shimeji-ee"/>
+                                            <arg value="--name"/>
+                                            <arg value="shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="deb"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="--linux-menu-group"/>
+                                            <arg value="Games"/>
+                                            <arg value="--linux-shortcut"/>
+                                        </exec>
+                                        
+                                        <echo message="Linux packages created:"/>
+                                        <echo message="  Portable: ${project.build.directory}/portable/Shimeji-ee/"/>
+                                        <echo message="  DEB package: ${project.build.directory}/shimeji-ee_${project.version}-1_amd64.deb"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- macOS简单打包profile -->
+        <profile>
+            <id>jpackage-mac</id>
+            <properties>
+                <skipAutoRun>true</skipAutoRun>
+            </properties>
+            <build>
+                <defaultGoal>clean install</defaultGoal>
+                <plugins>
+                    <!-- 禁用自动运行 -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>auto-run</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- 禁用其他jpackage profile的构建 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <!-- 禁用jpackage-macos profile的构建 -->
+                            <execution>
+                                <id>jpackage-macos-build</id>
+                                <phase>none</phase>
+                            </execution>
+                            <!-- 我们的简化macOS构建 -->
+                            <execution>
+                                <id>jpackage-mac-simple</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <echo message="Creating macOS packages..."/>
+                                        
+                                        <!-- 清理之前的构建 -->
+                                        <delete dir="${project.build.directory}/portable"/>
+                                        <delete dir="${project.build.directory}/jpackage-input"/>
+                                        <mkdir dir="${project.build.directory}/jpackage-input"/>
+                                        
+                                        <!-- 准备应用程序资源 -->
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar" 
+                                              todir="${project.build.directory}/jpackage-input"/>
+                                        
+                                        <!-- 创建便携版App Image -->
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}/jpackage-input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="${mainClass}"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="app-image"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/portable"/>
+                                            <arg value="--icon"/>
+                                            <arg value="img/icon.png"/>
+                                            <!-- macOS特定JVM参数 -->
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xmx512M"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Dapple.laf.useScreenMenuBar=true"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Dapple.awt.application.name=Shimeji-Live"/>
+                                            <arg value="--java-options"/>
+                                            <arg value="-Xdock:name=Shimeji-Live"/>
+                                        </exec>
+                                        
+                                        <!-- 复制配置文件 -->
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee.app/Contents/conf">
+                                            <fileset dir="conf"/>
+                                        </copy>
+                                        <copy todir="${project.build.directory}/portable/Shimeji-ee.app/Contents/img">
+                                            <fileset dir="img"/>
+                                        </copy>
+                                        
+                                        <!-- 创建DMG包 (静默模式) -->
+                                        <echo message="Creating DMG package (this may take a moment)..."/>
+                                        <exec executable="jpackage" failonerror="true">
+                                            <arg value="--app-image"/>
+                                            <arg value="${project.build.directory}/portable/Shimeji-ee.app"/>
+                                            <arg value="--name"/>
+                                            <arg value="Shimeji-ee"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${project.version}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Shimeji-ee Group"/>
+                                            <arg value="--description"/>
+                                            <arg value="${project.description}"/>
+                                            <arg value="--type"/>
+                                            <arg value="dmg"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <!-- 设置环境变量静默模式 -->
+                                            <env key="JPACKAGE_DEBUG" value="false"/>
+                                        </exec>
+                                        
+                                        <!-- 尝试卸载自动挂载的DMG (如果存在) -->
+                                        <exec executable="hdiutil" failonerror="false">
+                                            <arg value="detach"/>
+                                            <arg value="/Volumes/Shimeji-ee"/>
+                                        </exec>
+                                        
+                                        <echo message=""/>
+                                        <echo message="========================================"/>
+                                        <echo message="macOS packages created successfully!"/>
+                                        <echo message="========================================"/>
+                                        <echo message="  Portable App: ${project.build.directory}/portable/Shimeji-ee.app"/>
+                                        <echo message="  DMG installer: ${project.build.directory}/Shimeji-ee-${project.version}.dmg"/>
+                                        <echo message=""/>
+                                        <echo message="Note: DMG may auto-mount after creation - this is normal macOS behavior"/>
+                                        <echo message="You can safely eject it from Finder or use: hdiutil detach /Volumes/Shimeji-ee"/>
                                     </target>
                                 </configuration>
                             </execution>
