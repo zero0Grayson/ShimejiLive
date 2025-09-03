@@ -1,5 +1,8 @@
 package com.group_finity.mascot.license;
 
+import com.group_finity.mascot.DPIManager;
+import com.group_finity.mascot.Main;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
@@ -19,6 +22,7 @@ public class LicenseActivationDialog extends JDialog {
     
     private static final Logger logger = Logger.getLogger(LicenseActivationDialog.class.getName());
     
+    private final Frame parentFrame;
     private JTextArea keyTextArea;
     private JButton activateButton;
     private JButton clearButton;
@@ -36,11 +40,15 @@ public class LicenseActivationDialog extends JDialog {
     private boolean licenseActivated = false;
     private ResourceBundle languageBundle;
     
-    public LicenseActivationDialog(Frame parent, ResourceBundle languageBundle) {
-        super(parent, languageBundle.getString("LicenseActivation"), true);
-        this.languageBundle = languageBundle;
+    public LicenseActivationDialog(Frame parent) {
+        super(parent, "License Activation", true);
+        this.parentFrame = parent;
+        this.languageBundle = Main.getInstance().getLanguageBundle();
+        
         initComponents();
-        updateCurrentLicenseDisplay();
+        applyDPIScaling();
+        setLocationRelativeTo(parent);
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     }
     
     /**
@@ -49,7 +57,11 @@ public class LicenseActivationDialog extends JDialog {
      */
     private void initComponents() {
         setLayout(new BorderLayout());
-        setSize(600, 500);
+        
+        // 应用 DPI 缩放
+        int scaledWidth = DPIManager.scaleWidth(600);
+        int scaledHeight = DPIManager.scaleHeight(500);
+        setSize(scaledWidth, scaledHeight);
         setLocationRelativeTo(getParent());
         
         // 顶部面板 - 当前许可证状态
@@ -57,7 +69,7 @@ public class LicenseActivationDialog extends JDialog {
         topPanel.setBorder(BorderFactory.createTitledBorder(languageBundle.getString("CurrentLicense")));
         
         currentLicenseLabel = new JLabel();
-        currentLicenseLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        currentLicenseLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, DPIManager.scaleFontSize(12)));
         topPanel.add(currentLicenseLabel, BorderLayout.CENTER);
         
         // 创建选项卡面板
@@ -96,10 +108,13 @@ public class LicenseActivationDialog extends JDialog {
         inputPanel.setBorder(BorderFactory.createTitledBorder(languageBundle.getString("EnterLicenseKey")));
         
         keyTextArea = new JTextArea(6, 40);
-        keyTextArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        keyTextArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DPIManager.scaleFontSize(11)));
         keyTextArea.setLineWrap(true);
         keyTextArea.setWrapStyleWord(false);
-        keyTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // 应用 DPI 缩放到边距
+        int scaledPadding = DPIManager.scaleWidth(5);
+        keyTextArea.setBorder(BorderFactory.createEmptyBorder(scaledPadding, scaledPadding, scaledPadding, scaledPadding));
         
         JScrollPane scrollPane = new JScrollPane(keyTextArea);
         inputPanel.add(scrollPane, BorderLayout.CENTER);
@@ -107,7 +122,7 @@ public class LicenseActivationDialog extends JDialog {
         // 状态和进度条
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusLabel = new JLabel(" ");
-        statusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        statusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, DPIManager.scaleFontSize(11)));
         
         progressBar = new JProgressBar();
         progressBar.setIndeterminate(false);
@@ -133,12 +148,19 @@ public class LicenseActivationDialog extends JDialog {
         GridBagConstraints gbc = new GridBagConstraints();
         
         JLabel titleLabel = new JLabel(languageBundle.getString("InternalKeyGenerator"));
-        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; gbc.insets = new Insets(10, 10, 20, 10);
+        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, DPIManager.scaleFontSize(14)));
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; 
+        
+        // 应用 DPI 缩放到边距
+        int scaledMarginLarge = DPIManager.scaleWidth(10);
+        int scaledMarginMedium = DPIManager.scaleWidth(20);
+        gbc.insets = new Insets(scaledMarginLarge, scaledMarginLarge, scaledMarginMedium, scaledMarginLarge);
         controlPanel.add(titleLabel, gbc);
         
         // 有效期输入
-        gbc.gridwidth = 1; gbc.insets = new Insets(5, 10, 5, 5);
+        gbc.gridwidth = 1; 
+        int scaledMarginSmall = DPIManager.scaleWidth(5);
+        gbc.insets = new Insets(scaledMarginSmall, scaledMarginLarge, scaledMarginSmall, scaledMarginSmall);
         gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.WEST;
         controlPanel.add(new JLabel(languageBundle.getString("ValidityDays") + ":"), gbc);
         
@@ -149,14 +171,15 @@ public class LicenseActivationDialog extends JDialog {
         // 生成按钮
         generateKeyButton = new JButton(languageBundle.getString("GenerateAdvancedKey"));
         generateKeyButton.addActionListener(new GenerateKeyAction());
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.insets = new Insets(20, 10, 10, 10);
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; 
+        gbc.insets = new Insets(scaledMarginMedium, scaledMarginLarge, scaledMarginLarge, scaledMarginLarge);
         gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.CENTER;
         controlPanel.add(generateKeyButton, gbc);
         
         // 结果显示区域
         generatorResultArea = new JTextArea(12, 50);
         generatorResultArea.setEditable(false);
-        generatorResultArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        generatorResultArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DPIManager.scaleFontSize(12)));
         generatorResultArea.setBackground(Color.BLACK);
         generatorResultArea.setForeground(Color.GREEN);
         generatorResultArea.setText(languageBundle.getString("InternalKeyGenerator") + " " + languageBundle.getString("Generated") + "\n" +
@@ -487,7 +510,76 @@ public class LicenseActivationDialog extends JDialog {
      * Show license activation dialog
      */
     public static void showDialog(Frame parent, ResourceBundle languageBundle) {
-        LicenseActivationDialog dialog = new LicenseActivationDialog(parent, languageBundle);
+        LicenseActivationDialog dialog = new LicenseActivationDialog(parent);
         dialog.setVisible(true);
+    }
+    
+    /**
+     * 应用DPI缩放
+     * Apply DPI scaling similar to SettingsWindow
+     */
+    private void applyDPIScaling() {
+        // 获取菜单缩放因子，参考SettingsWindow的实现
+        float menuScaling = Float.parseFloat(Main.getInstance().getProperties().getProperty("MenuDPI", "96")) / 96;
+        
+        // 缩放对话框整体大小
+        Dimension preferredSize = getContentPane().getPreferredSize();
+        getContentPane().setPreferredSize(new Dimension(
+            (int) (preferredSize.width * menuScaling),
+            (int) (preferredSize.height * menuScaling)
+        ));
+        
+        // 缩放按钮
+        scaleComponent(activateButton, menuScaling);
+        scaleComponent(clearButton, menuScaling);
+        scaleComponent(cancelButton, menuScaling);
+        scaleComponent(generateKeyButton, menuScaling);
+        
+        // 缩放文本组件
+        if (keyTextArea != null) {
+            scaleComponent(keyTextArea, menuScaling);
+            Font currentFont = keyTextArea.getFont();
+            if (currentFont != null) {
+                keyTextArea.setFont(currentFont.deriveFont(currentFont.getSize() * menuScaling));
+            }
+        }
+        
+        if (validityField != null) {
+            scaleComponent(validityField, menuScaling);
+        }
+        
+        if (generatorResultArea != null) {
+            scaleComponent(generatorResultArea, menuScaling);
+            Font currentFont = generatorResultArea.getFont();
+            if (currentFont != null) {
+                generatorResultArea.setFont(currentFont.deriveFont(currentFont.getSize() * menuScaling));
+            }
+        }
+        
+        // 缩放标签
+        scaleComponent(statusLabel, menuScaling);
+        scaleComponent(currentLicenseLabel, menuScaling);
+        
+        // 缩放进度条
+        if (progressBar != null) {
+            scaleComponent(progressBar, menuScaling);
+        }
+        
+        // 重新打包对话框
+        pack();
+    }
+    
+    /**
+     * 缩放单个组件
+     * Scale individual component
+     */
+    private void scaleComponent(JComponent component, float scaling) {
+        if (component != null) {
+            Dimension size = component.getPreferredSize();
+            component.setPreferredSize(new Dimension(
+                (int) (size.width * scaling),
+                (int) (size.height * scaling)
+            ));
+        }
     }
 }

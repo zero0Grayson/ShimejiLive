@@ -261,4 +261,48 @@ public class DPIManager {
     private static boolean isMacOS() {
         return System.getProperty("os.name").toLowerCase().contains("mac");
     }
+    
+    /**
+     * 获取当前系统的 UI 缩放因子
+     * @return UI 缩放因子，用于调整组件大小
+     */
+    public static double getUIScaleFactor() {
+        try {
+            DisplayInfo info = getDisplayInfo();
+            return Math.max(1.0, info.scaleFactor);
+        } catch (Exception e) {
+            log.warning("获取 UI 缩放因子失败: " + e.getMessage());
+            return 1.0;
+        }
+    }
+    
+    /**
+     * 根据缩放因子调整宽度
+     * @param originalWidth 原始宽度
+     * @return 调整后的宽度
+     */
+    public static int scaleWidth(int originalWidth) {
+        double scaleFactor = getUIScaleFactor();
+        return (int) (originalWidth * scaleFactor);
+    }
+    
+    /**
+     * 根据缩放因子调整高度
+     * @param originalHeight 原始高度
+     * @return 调整后的高度
+     */
+    public static int scaleHeight(int originalHeight) {
+        double scaleFactor = getUIScaleFactor();
+        return (int) (originalHeight * scaleFactor);
+    }
+    
+    /**
+     * 根据缩放因子调整字体大小
+     * @param originalSize 原始字体大小
+     * @return 调整后的字体大小
+     */
+    public static int scaleFontSize(int originalSize) {
+        double scaleFactor = getUIScaleFactor();
+        return Math.max(8, (int) (originalSize * scaleFactor));
+    }
 }
