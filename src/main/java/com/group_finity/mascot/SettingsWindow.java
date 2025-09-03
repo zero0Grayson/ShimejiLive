@@ -37,20 +37,20 @@ import com.group_finity.mascot.license.LicenseLevel;
  * @author Kilkakon
  */
 public class SettingsWindow extends javax.swing.JDialog {
-    private final String themeFile;
-    private Properties themeProperties = new Properties();
-    private final Properties oldThemeProperties = new Properties();
-    private LookAndFeel lookAndFeel;
-    private final ArrayList<String> listData = new ArrayList<>();
-    private final ArrayList<String> blacklistData = new ArrayList<>();
-    private Boolean alwaysShowShimejiChooser = false;
-    private Boolean alwaysShowInformationScreen = false;
+        private final String themeFile;
+        private Properties themeProperties = new Properties();
+        private final Properties oldThemeProperties = new Properties();
+        private LookAndFeel lookAndFeel;
+        private final ArrayList<String> listData = new ArrayList<>();
+        private final ArrayList<String> blacklistData = new ArrayList<>();
+        private Boolean alwaysShowShimejiChooser = false;
+        private Boolean alwaysShowInformationScreen = false;
         private String filter = "nearest";
         private double scaling = 1.0;
         private double opacity = 1.0;
         private Boolean windowedMode = false;
         private Dimension windowSize = new Dimension(600, 500);
-    private Color backgroundColour = new Color(0, 255, 0);
+        private Color backgroundColour = new Color(0, 255, 0);
         private String backgroundMode = "centre";
         private String backgroundImage = null;
         private final String[] backgroundModes = { "centre", "fill", "fit", "stretch" };
@@ -74,17 +74,17 @@ public class SettingsWindow extends javax.swing.JDialog {
          */
         public SettingsWindow(javax.swing.JFrame parent, boolean modal) {
                 super(parent, modal);
-                
+
                 // 获取应用程序基础目录
                 String baseDir = System.getProperty("app.dir");
                 if (baseDir == null) {
-                    baseDir = System.getProperty("user.dir");
+                        baseDir = System.getProperty("user.dir");
                 }
                 if (baseDir == null) {
-                    baseDir = ".";
+                        baseDir = ".";
                 }
                 themeFile = baseDir + "/conf/theme.properties";
-                
+
                 initComponents();
         }
 
@@ -94,12 +94,28 @@ public class SettingsWindow extends javax.swing.JDialog {
                 grpFilter.add(radFilterNearest);
                 grpFilter.add(radFilterBicubic);
                 grpFilter.add(radFilterHqx);
-                java.util.Hashtable<Integer, JLabel> labelTable = new java.util.Hashtable<>();
-                for (int index = 0; index < 5; index++)
-                        labelTable.put(index * 10, new JLabel(index + "x"));
-                sldScaling.setLabelTable(labelTable);
+                
+                // 设置scaling滑块 - 支持0.5x到4x
+                sldScaling.setMinimum(5);  // 0.5倍
+                sldScaling.setMaximum(40); // 4.0倍
+                sldScaling.setMajorTickSpacing(5);  // 主刻度间隔0.5倍
+                sldScaling.setMinorTickSpacing(1);  // 次刻度间隔0.1倍
                 sldScaling.setPaintLabels(true);
-                sldScaling.setSnapToTicks(true);
+                sldScaling.setPaintTicks(true);
+                sldScaling.setSnapToTicks(false); // 关闭自动对齐，我们手动实现
+                sldScaling.setValue(10); // 默认1.0倍
+                
+                // 自定义标签
+                java.util.Hashtable<Integer, JLabel> labelTable = new java.util.Hashtable<>();
+                labelTable.put(5, new JLabel("0.5x"));
+                labelTable.put(10, new JLabel("1x"));
+                labelTable.put(15, new JLabel("1.5x"));
+                labelTable.put(20, new JLabel("2x"));
+                labelTable.put(25, new JLabel("2.5x"));
+                labelTable.put(30, new JLabel("3x"));
+                labelTable.put(35, new JLabel("3.5x"));
+                labelTable.put(40, new JLabel("4x"));
+                sldScaling.setLabelTable(labelTable);
 
                 // load existing settings
                 Properties properties = Main.getInstance().getProperties();
@@ -118,8 +134,8 @@ public class SettingsWindow extends javax.swing.JDialog {
                 windowedMode = properties.getProperty("Environment", "generic").equals("virtual");
                 String[] windowArray = properties.getProperty("WindowSize", "600x500").split("x");
                 windowSize = new Dimension(Integer.parseInt(windowArray[0]), Integer.parseInt(windowArray[1]));
-            Dimension buttonSize = btnDone.getPreferredSize();
-            Dimension aboutButtonSize = btnWebsite.getPreferredSize();
+                Dimension buttonSize = btnDone.getPreferredSize();
+                Dimension aboutButtonSize = btnWebsite.getPreferredSize();
                 backgroundColour = Color.decode(properties.getProperty("Background", "#00FF00"));
                 backgroundImage = properties.getProperty("BackgroundImage", "");
                 backgroundMode = properties.getProperty("BackgroundMode", "centre");
@@ -134,10 +150,11 @@ public class SettingsWindow extends javax.swing.JDialog {
                         radFilterNearest.setSelected(true);
                 sldOpacity.setValue((int) (opacity * 100));
                 sldScaling.setValue((int) (scaling * 10));
+                spnScaling.setValue(scaling);
 
                 listData.addAll(Arrays.asList(properties.getProperty("InteractiveWindows", "").split("/")));
                 lstInteractiveWindows.setListData(listData.toArray(new String[0]));
-                
+
                 for (String item : properties.getProperty("InteractiveWindowsBlacklist", "").split("/")) {
                         if (!item.trim().isEmpty()) {
                                 blacklistData.add(item);
@@ -295,6 +312,11 @@ public class SettingsWindow extends javax.swing.JDialog {
                                 (int) (sldOpacity.getPreferredSize().height * menuScaling)));
                 sldScaling.setPreferredSize(new Dimension((int) (sldScaling.getPreferredSize().width * menuScaling),
                                 (int) (sldScaling.getPreferredSize().height * menuScaling)));
+                spnScaling.setPreferredSize(new Dimension(DPIManager.scaleWidth(120),
+                                DPIManager.scaleHeight(50)));
+                
+                // 设置 Spinner 的字体大小
+                spnScaling.setFont(spnScaling.getFont().deriveFont((float) DPIManager.scaleFontSize(spnScaling.getFont().getSize())));
                 btnAddInteractiveWindow
                                 .setPreferredSize(new Dimension(
                                                 (int) (btnAddInteractiveWindow.getPreferredSize().width * menuScaling),
@@ -608,10 +630,11 @@ public class SettingsWindow extends javax.swing.JDialog {
 
                 grpFilter = new javax.swing.ButtonGroup();
                 pnlTabs = new javax.swing.JTabbedPane();
-            JPanel pnlGeneral = new JPanel();
+                JPanel pnlGeneral = new JPanel();
                 chkAlwaysShowShimejiChooser = new javax.swing.JCheckBox();
                 lblScaling = new javax.swing.JLabel();
                 sldScaling = new javax.swing.JSlider();
+                spnScaling = new javax.swing.JSpinner();
                 lblFilter = new javax.swing.JLabel();
                 radFilterNearest = new javax.swing.JRadioButton();
                 radFilterBicubic = new javax.swing.JRadioButton();
@@ -620,155 +643,157 @@ public class SettingsWindow extends javax.swing.JDialog {
                 sldOpacity = new javax.swing.JSlider();
                 lblOpacity = new javax.swing.JLabel();
                 chkAlwaysShowInformationScreen = new javax.swing.JCheckBox();
-            JPanel pnlInteractiveWindows = new JPanel();
+                JPanel pnlInteractiveWindows = new JPanel();
                 pnlInteractiveTabs = new javax.swing.JTabbedPane();
                 pnlWhitelistTab = new javax.swing.JPanel();
                 pnlBlacklistTab = new javax.swing.JPanel();
                 pnlInteractiveButtons = new javax.swing.JPanel();
                 btnAddInteractiveWindow = new javax.swing.JButton();
                 btnRemoveInteractiveWindow = new javax.swing.JButton();
-            javax.swing.JScrollPane jScrollPane1 = new javax.swing.JScrollPane();
+                javax.swing.JScrollPane jScrollPane1 = new javax.swing.JScrollPane();
                 lstInteractiveWindows = new javax.swing.JList<>();
-            javax.swing.JScrollPane jScrollPane3 = new javax.swing.JScrollPane();
+                javax.swing.JScrollPane jScrollPane3 = new javax.swing.JScrollPane();
                 lstInteractiveWindowsBlacklist = new javax.swing.JList<>();
-            JPanel pnlTheme = new JPanel();
+                JPanel pnlTheme = new JPanel();
                 pnlThemeButtons = new javax.swing.JPanel();
                 btnChangeFont = new javax.swing.JButton();
                 btnReset = new javax.swing.JButton();
                 lblPrimaryColour1 = new javax.swing.JLabel();
                 txtPrimaryColour1 = new javax.swing.JTextField();
                 pnlPrimaryColour1PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour1a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler gluePrimaryColour1a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlPrimaryColour1Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour1b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler gluePrimaryColour1b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnPrimaryColour1Change = new javax.swing.JButton();
                 lblPrimaryColour2 = new javax.swing.JLabel();
                 txtPrimaryColour2 = new javax.swing.JTextField();
                 pnlPrimaryColour2PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour2a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler gluePrimaryColour2a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlPrimaryColour2Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour2b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler gluePrimaryColour2b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnPrimaryColour2Change = new javax.swing.JButton();
                 lblPrimaryColour3 = new javax.swing.JLabel();
                 txtPrimaryColour3 = new javax.swing.JTextField();
                 pnlPrimaryColour3PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour3a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler gluePrimaryColour3a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlPrimaryColour3Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler gluePrimaryColour3b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler gluePrimaryColour3b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnPrimaryColour3Change = new javax.swing.JButton();
                 lblSecondaryColour1 = new javax.swing.JLabel();
                 txtSecondaryColour1 = new javax.swing.JTextField();
                 pnlSecondaryColour1PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour1a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueSecondaryColour1a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlSecondaryColour1Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour1b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler glueSecondaryColour1b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnSecondaryColour1Change = new javax.swing.JButton();
                 lblSecondaryColour2 = new javax.swing.JLabel();
                 txtSecondaryColour2 = new javax.swing.JTextField();
                 pnlSecondaryColour2PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour2a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueSecondaryColour2a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlSecondaryColour2Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour2b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler glueSecondaryColour2b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnSecondaryColour2Change = new javax.swing.JButton();
                 lblSecondaryColour3 = new javax.swing.JLabel();
                 txtSecondaryColour3 = new javax.swing.JTextField();
                 pnlSecondaryColour3PreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour3a = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueSecondaryColour3a = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlSecondaryColour3Preview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueSecondaryColour3b = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler glueSecondaryColour3b = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnSecondaryColour3Change = new javax.swing.JButton();
                 lblMenuOpacity = new javax.swing.JLabel();
                 sldMenuOpacity = new javax.swing.JSlider();
                 lblBlackColour = new javax.swing.JLabel();
                 txtBlackColour = new javax.swing.JTextField();
                 pnlBlackColourPreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueBlackColoura = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueBlackColoura = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlBlackColourPreview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueBlackColourb = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler glueBlackColourb = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnBlackColourChange = new javax.swing.JButton();
                 lblWhiteColour = new javax.swing.JLabel();
                 txtWhiteColour = new javax.swing.JTextField();
                 pnlWhiteColourPreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueWhiteColoura = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueWhiteColoura = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlWhiteColourPreview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueWhiteColourb = new javax.swing.Box.Filler(new Dimension(0, 0),
-                    new Dimension(0, 0),
-                    new Dimension(0, 0));
+                javax.swing.Box.Filler glueWhiteColourb = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
                 btnWhiteColourChange = new javax.swing.JButton();
-            JPanel pnlWindowMode = new JPanel();
+                JPanel pnlWindowMode = new JPanel();
                 chkWindowModeEnabled = new javax.swing.JCheckBox();
                 lblDimensions = new javax.swing.JLabel();
-            JLabel lblDimensionsX = new JLabel();
+                JLabel lblDimensionsX = new JLabel();
                 lblBackground = new javax.swing.JLabel();
                 txtBackgroundColour = new javax.swing.JTextField();
                 btnBackgroundColourChange = new javax.swing.JButton();
                 spnWindowWidth = new javax.swing.JSpinner();
                 spnWindowHeight = new javax.swing.JSpinner();
-            JLabel lblBackgroundColour = new JLabel();
+                JLabel lblBackgroundColour = new JLabel();
                 pnlBackgroundPreviewContainer = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueBackground = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glueBackground = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlBackgroundPreview = new javax.swing.JPanel();
-            javax.swing.Box.Filler glueBackground2 = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
-                    new Dimension(0, 0));
-            JLabel lblBackgroundImageCaption = new JLabel();
+                javax.swing.Box.Filler glueBackground2 = new javax.swing.Box.Filler(new Dimension(0, 0),
+                                new Dimension(0, 0),
+                                new Dimension(0, 0));
+                JLabel lblBackgroundImageCaption = new JLabel();
                 pnlBackgroundImage = new javax.swing.JPanel();
                 lblBackgroundImage = new javax.swing.JLabel();
                 btnBackgroundImageChange = new javax.swing.JButton();
                 btnBackgroundImageRemove = new javax.swing.JButton();
                 cmbBackgroundImageMode = new javax.swing.JComboBox<>();
-            JPanel pnlAbout = new JPanel();
-            javax.swing.Box.Filler glue1 = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                JPanel pnlAbout = new JPanel();
+                javax.swing.Box.Filler glue1 = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 lblIcon = new javax.swing.JLabel();
-            javax.swing.Box.Filler rigid1 = new javax.swing.Box.Filler(new Dimension(0, 15), new Dimension(0, 15),
-                    new Dimension(0, 15));
+                javax.swing.Box.Filler rigid1 = new javax.swing.Box.Filler(new Dimension(0, 15), new Dimension(0, 15),
+                                new Dimension(0, 15));
                 lblShimejiEE = new javax.swing.JLabel();
-            javax.swing.Box.Filler rigid2 = new javax.swing.Box.Filler(new Dimension(0, 10), new Dimension(0, 5),
-                    new Dimension(0, 10));
-            JLabel lblVersion = new JLabel();
-            javax.swing.Box.Filler rigid3 = new javax.swing.Box.Filler(new Dimension(0, 15), new Dimension(0, 15),
-                    new Dimension(0, 15));
+                javax.swing.Box.Filler rigid2 = new javax.swing.Box.Filler(new Dimension(0, 10), new Dimension(0, 5),
+                                new Dimension(0, 10));
+                JLabel lblVersion = new JLabel();
+                javax.swing.Box.Filler rigid3 = new javax.swing.Box.Filler(new Dimension(0, 15), new Dimension(0, 15),
+                                new Dimension(0, 15));
                 lblDevelopedBy = new javax.swing.JLabel();
-            JLabel lblKilkakon = new JLabel();
-            javax.swing.Box.Filler rigid4 = new javax.swing.Box.Filler(new Dimension(0, 30), new Dimension(0, 30),
-                    new Dimension(0, 30));
+                JLabel lblKilkakon = new JLabel();
+                javax.swing.Box.Filler rigid4 = new javax.swing.Box.Filler(new Dimension(0, 30), new Dimension(0, 30),
+                                new Dimension(0, 30));
                 pnlAboutButtons = new javax.swing.JPanel();
                 btnWebsite = new javax.swing.JButton();
                 btnDiscord = new javax.swing.JButton();
                 btnPatreon = new javax.swing.JButton();
-            javax.swing.Box.Filler glue2 = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
-                    new Dimension(0, 32767));
+                javax.swing.Box.Filler glue2 = new javax.swing.Box.Filler(new Dimension(0, 0), new Dimension(0, 0),
+                                new Dimension(0, 32767));
                 pnlFooter = new javax.swing.JPanel();
                 btnDone = new javax.swing.JButton();
                 btnCancel = new javax.swing.JButton();
@@ -790,6 +815,10 @@ public class SettingsWindow extends javax.swing.JDialog {
                 sldScaling.setPreferredSize(new java.awt.Dimension(300, 45));
                 sldScaling.addChangeListener(evt -> sldScalingStateChanged(evt));
 
+                spnScaling.setModel(new javax.swing.SpinnerNumberModel(1.0, 0.5, 4.0, 0.1));
+                spnScaling.setPreferredSize(new java.awt.Dimension(120, 50));
+                spnScaling.addChangeListener(evt -> spnScalingStateChanged(evt));
+
                 lblFilter.setText("Filter");
 
                 radFilterNearest.setText("Nearest");
@@ -802,7 +831,8 @@ public class SettingsWindow extends javax.swing.JDialog {
                 radFilterHqx.addItemListener(evt -> radFilterItemStateChanged(evt));
 
                 btnFilterHelp.setText("?");
-                btnFilterHelp.setFont(lblFilter.getFont().deriveFont(java.awt.Font.BOLD, lblFilter.getFont().getSize()));
+                btnFilterHelp.setFont(
+                                lblFilter.getFont().deriveFont(java.awt.Font.BOLD, lblFilter.getFont().getSize()));
                 btnFilterHelp.setPreferredSize(new java.awt.Dimension(32, 32));
                 btnFilterHelp.setMinimumSize(new java.awt.Dimension(32, 32));
                 btnFilterHelp.setMaximumSize(new java.awt.Dimension(32, 32));
@@ -820,7 +850,8 @@ public class SettingsWindow extends javax.swing.JDialog {
                 lblOpacity.setText("Opacity");
 
                 chkAlwaysShowInformationScreen.setText("Always Show Information Screen");
-                chkAlwaysShowInformationScreen.addItemListener(evt -> chkAlwaysShowInformationScreenItemStateChanged(evt));
+                chkAlwaysShowInformationScreen
+                                .addItemListener(evt -> chkAlwaysShowInformationScreenItemStateChanged(evt));
 
                 javax.swing.GroupLayout pnlGeneralLayout = new javax.swing.GroupLayout(pnlGeneral);
                 pnlGeneral.setLayout(pnlGeneralLayout);
@@ -832,10 +863,14 @@ public class SettingsWindow extends javax.swing.JDialog {
                                                                                 .createParallelGroup(
                                                                                                 javax.swing.GroupLayout.Alignment.LEADING)
                                                                                 .addComponent(chkAlwaysShowShimejiChooser)
-                                                                                .addGroup(pnlGeneralLayout.createSequentialGroup()
-                                                                                        .addComponent(lblFilter)
-                                                                                        .addGap(8, 8, 8)
-                                                                                        .addComponent(btnFilterHelp, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                                                .addGroup(pnlGeneralLayout
+                                                                                                .createSequentialGroup()
+                                                                                                .addComponent(lblFilter)
+                                                                                                .addGap(8, 8, 8)
+                                                                                                .addComponent(btnFilterHelp,
+                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
                                                                                 .addComponent(lblScaling)
                                                                                 .addGroup(pnlGeneralLayout
                                                                                                 .createSequentialGroup()
@@ -851,10 +886,17 @@ public class SettingsWindow extends javax.swing.JDialog {
                                                                                                                                 .createParallelGroup(
                                                                                                                                                 javax.swing.GroupLayout.Alignment.LEADING)
                                                                                                                                 .addComponent(radFilterNearest)
-                                                                                                                                .addComponent(sldScaling,
-                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
-                                                                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                                                                .addGroup(pnlGeneralLayout
+                                                                                                                                                .createSequentialGroup()
+                                                                                                                                                .addComponent(sldScaling,
+                                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                                                                                .addGap(10, 10, 10)
+                                                                                                                                                .addComponent(spnScaling,
+                                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
                                                                                                                                 .addComponent(radFilterBicubic)
                                                                                                                                 .addComponent(radFilterHqx))))
                                                                                 .addComponent(lblOpacity)
@@ -881,15 +923,25 @@ public class SettingsWindow extends javax.swing.JDialog {
                                                                 .addComponent(lblScaling)
                                                                 .addPreferredGap(
                                                                                 javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                                .addComponent(sldScaling,
-                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
-                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addGroup(pnlGeneralLayout.createParallelGroup(
+                                                                                javax.swing.GroupLayout.Alignment.BASELINE)
+                                                                                .addComponent(sldScaling,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                .addComponent(spnScaling,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
                                                                 .addPreferredGap(
                                                                                 javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                                .addGroup(pnlGeneralLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                                        .addComponent(lblFilter)
-                                                                        .addComponent(btnFilterHelp, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                                .addGroup(pnlGeneralLayout.createParallelGroup(
+                                                                                javax.swing.GroupLayout.Alignment.BASELINE)
+                                                                                .addComponent(lblFilter)
+                                                                                .addComponent(btnFilterHelp,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
                                                                 .addPreferredGap(
                                                                                 javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                                 .addComponent(radFilterNearest)
@@ -922,28 +974,28 @@ public class SettingsWindow extends javax.swing.JDialog {
                 pnlInteractiveButtons.add(btnRemoveInteractiveWindow);
 
                 lstInteractiveWindows.setModel(new javax.swing.AbstractListModel<>() {
-                    final String[] strings = {"Item 1", "Item 2", "Item 3", "Item 4", "Item 5"};
+                        final String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
 
-                    public int getSize() {
-                        return strings.length;
-                    }
+                        public int getSize() {
+                                return strings.length;
+                        }
 
-                    public String getElementAt(int i) {
-                        return strings[i];
-                    }
+                        public String getElementAt(int i) {
+                                return strings[i];
+                        }
                 });
                 jScrollPane1.setViewportView(lstInteractiveWindows);
 
                 lstInteractiveWindowsBlacklist.setModel(new javax.swing.AbstractListModel<>() {
-                    final String[] strings = {"Item 1", "Item 2", "Item 3", "Item 4", "Item 5"};
+                        final String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
 
-                    public int getSize() {
-                        return strings.length;
-                    }
+                        public int getSize() {
+                                return strings.length;
+                        }
 
-                    public String getElementAt(int i) {
-                        return strings[i];
-                    }
+                        public String getElementAt(int i) {
+                                return strings[i];
+                        }
                 });
                 jScrollPane3.setViewportView(lstInteractiveWindowsBlacklist);
 
@@ -951,19 +1003,21 @@ public class SettingsWindow extends javax.swing.JDialog {
                 javax.swing.GroupLayout pnlWhitelistTabLayout = new javax.swing.GroupLayout(pnlWhitelistTab);
                 pnlWhitelistTab.setLayout(pnlWhitelistTabLayout);
                 pnlWhitelistTabLayout.setHorizontalGroup(
-                    pnlWhitelistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(pnlWhitelistTabLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 301, Short.MAX_VALUE)
-                        .addContainerGap())
-                );
+                                pnlWhitelistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(pnlWhitelistTabLayout.createSequentialGroup()
+                                                                .addContainerGap()
+                                                                .addComponent(jScrollPane1,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                301, Short.MAX_VALUE)
+                                                                .addContainerGap()));
                 pnlWhitelistTabLayout.setVerticalGroup(
-                    pnlWhitelistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(pnlWhitelistTabLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 237, Short.MAX_VALUE)
-                        .addContainerGap())
-                );
+                                pnlWhitelistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(pnlWhitelistTabLayout.createSequentialGroup()
+                                                                .addContainerGap()
+                                                                .addComponent(jScrollPane1,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                237, Short.MAX_VALUE)
+                                                                .addContainerGap()));
 
                 pnlInteractiveTabs.addTab("Whitelist", pnlWhitelistTab);
 
@@ -971,24 +1025,26 @@ public class SettingsWindow extends javax.swing.JDialog {
                 javax.swing.GroupLayout pnlBlacklistTabLayout = new javax.swing.GroupLayout(pnlBlacklistTab);
                 pnlBlacklistTab.setLayout(pnlBlacklistTabLayout);
                 pnlBlacklistTabLayout.setHorizontalGroup(
-                    pnlBlacklistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(pnlBlacklistTabLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 301, Short.MAX_VALUE)
-                        .addContainerGap())
-                );
+                                pnlBlacklistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(pnlBlacklistTabLayout.createSequentialGroup()
+                                                                .addContainerGap()
+                                                                .addComponent(jScrollPane3,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                301, Short.MAX_VALUE)
+                                                                .addContainerGap()));
                 pnlBlacklistTabLayout.setVerticalGroup(
-                    pnlBlacklistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(pnlBlacklistTabLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 237, Short.MAX_VALUE)
-                        .addContainerGap())
-                );
+                                pnlBlacklistTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(pnlBlacklistTabLayout.createSequentialGroup()
+                                                                .addContainerGap()
+                                                                .addComponent(jScrollPane3,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                237, Short.MAX_VALUE)
+                                                                .addContainerGap()));
 
                 pnlInteractiveTabs.addTab("Blacklist", pnlBlacklistTab);
 
                 javax.swing.GroupLayout pnlInteractiveWindowsLayout = new javax.swing.GroupLayout(
-                        pnlInteractiveWindows);
+                                pnlInteractiveWindows);
                 pnlInteractiveWindows.setLayout(pnlInteractiveWindowsLayout);
                 pnlInteractiveWindowsLayout.setHorizontalGroup(
                                 pnlInteractiveWindowsLayout
@@ -2020,7 +2076,8 @@ public class SettingsWindow extends javax.swing.JDialog {
                         Properties properties = Main.getInstance().getProperties();
                         String interactiveWindows = listData.toString().replace("[", "").replace("]", "").replace(", ",
                                         "/");
-                        String interactiveWindowsBlacklist = blacklistData.toString().replace("[", "").replace("]", "").replace(", ", "/");
+                        String interactiveWindowsBlacklist = blacklistData.toString().replace("[", "").replace("]", "")
+                                        .replace(", ", "/");
                         String[] windowArray = properties.getProperty("WindowSize", "600x500").split("x");
                         Dimension window = new Dimension(Integer.parseInt(windowArray[0]),
                                         Integer.parseInt(windowArray[1]));
@@ -2041,72 +2098,72 @@ public class SettingsWindow extends javax.swing.JDialog {
                         interactiveWindowReloadRequired = !properties.getProperty("InteractiveWindows", "")
                                         .equals(interactiveWindows) ||
                                         !properties.getProperty("InteractiveWindowsBlacklist", "")
-                                        .equals(interactiveWindowsBlacklist);
-                    // Config file name
-                    String baseDir = System.getProperty("app.dir", System.getProperty("user.dir", "."));
-                    String configFile = baseDir + "/conf/settings.properties";
+                                                        .equals(interactiveWindowsBlacklist);
+                        // Config file name
+                        String baseDir = System.getProperty("app.dir", System.getProperty("user.dir", "."));
+                        String configFile = baseDir + "/conf/settings.properties";
 
-                    try (FileOutputStream output = new FileOutputStream(configFile)) {
-                        properties.setProperty("AlwaysShowShimejiChooser", alwaysShowShimejiChooser.toString());
-                        properties.setProperty("AlwaysShowInformationScreen",
-                                alwaysShowInformationScreen.toString());
-                        properties.setProperty("Opacity", Double.toString(opacity));
-                        properties.setProperty("Scaling", Double.toString(scaling));
-                        properties.setProperty("Filter", filter);
-                        properties.setProperty("InteractiveWindows", interactiveWindows);
-                        properties.setProperty("InteractiveWindowsBlacklist", interactiveWindowsBlacklist);
-                        properties.setProperty("Environment", windowedMode ? "virtual" : "generic");
-                        if (windowedMode) {
-                            properties.setProperty("WindowSize",
-                                    windowSize.width + "x" + windowSize.height);
-                            properties.setProperty("Background",
-                                    String.format("#%02X%02X%02X", backgroundColour.getRed(),
-                                            backgroundColour.getGreen(),
-                                            backgroundColour.getBlue()));
-                            properties.setProperty("BackgroundMode", backgroundMode);
-                            properties.setProperty("BackgroundImage",
-                                    backgroundImage == null ? "" : backgroundImage);
+                        try (FileOutputStream output = new FileOutputStream(configFile)) {
+                                properties.setProperty("AlwaysShowShimejiChooser", alwaysShowShimejiChooser.toString());
+                                properties.setProperty("AlwaysShowInformationScreen",
+                                                alwaysShowInformationScreen.toString());
+                                properties.setProperty("Opacity", Double.toString(opacity));
+                                properties.setProperty("Scaling", Double.toString(scaling));
+                                properties.setProperty("Filter", filter);
+                                properties.setProperty("InteractiveWindows", interactiveWindows);
+                                properties.setProperty("InteractiveWindowsBlacklist", interactiveWindowsBlacklist);
+                                properties.setProperty("Environment", windowedMode ? "virtual" : "generic");
+                                if (windowedMode) {
+                                        properties.setProperty("WindowSize",
+                                                        windowSize.width + "x" + windowSize.height);
+                                        properties.setProperty("Background",
+                                                        String.format("#%02X%02X%02X", backgroundColour.getRed(),
+                                                                        backgroundColour.getGreen(),
+                                                                        backgroundColour.getBlue()));
+                                        properties.setProperty("BackgroundMode", backgroundMode);
+                                        properties.setProperty("BackgroundImage",
+                                                        backgroundImage == null ? "" : backgroundImage);
+                                }
+
+                                properties.store(output, "Shimeji-ee Configuration Options");
                         }
 
-                        properties.store(output, "Shimeji-ee Configuration Options");
-                    }
+                        try (FileOutputStream themeOutput = new FileOutputStream(themeFile)) {
+                                Properties themeProps = new Properties();
+                                themeProps.setProperty("PrimaryColour1",
+                                                String.format("#%02X%02X%02X", primaryColour1.getRed(),
+                                                                primaryColour1.getGreen(), primaryColour1.getBlue()));
+                                themeProps.setProperty("PrimaryColour2",
+                                                String.format("#%02X%02X%02X", primaryColour2.getRed(),
+                                                                primaryColour2.getGreen(), primaryColour2.getBlue()));
+                                themeProps.setProperty("PrimaryColour3",
+                                                String.format("#%02X%02X%02X", primaryColour3.getRed(),
+                                                                primaryColour3.getGreen(), primaryColour3.getBlue()));
+                                themeProps.setProperty("SecondaryColour1",
+                                                String.format("#%02X%02X%02X", secondaryColour1.getRed(),
+                                                                secondaryColour1.getGreen(),
+                                                                secondaryColour1.getBlue()));
+                                themeProps.setProperty("SecondaryColour2",
+                                                String.format("#%02X%02X%02X", secondaryColour2.getRed(),
+                                                                secondaryColour2.getGreen(),
+                                                                secondaryColour2.getBlue()));
+                                themeProps.setProperty("SecondaryColour3",
+                                                String.format("#%02X%02X%02X", secondaryColour3.getRed(),
+                                                                secondaryColour3.getGreen(),
+                                                                secondaryColour3.getBlue()));
+                                themeProps.setProperty("BlackColour",
+                                                String.format("#%02X%02X%02X", blackColour.getRed(),
+                                                                blackColour.getGreen(), blackColour.getBlue()));
+                                themeProps.setProperty("WhiteColour",
+                                                String.format("#%02X%02X%02X", whiteColour.getRed(),
+                                                                whiteColour.getGreen(), whiteColour.getBlue()));
+                                themeProps.setProperty("MenuOpacity", String.valueOf((int) (menuOpacity * 255)));
+                                themeProps.setProperty("FontName", font.getName());
+                                themeProps.setProperty("FontStyle", String.valueOf(font.getStyle()));
+                                themeProps.setProperty("FontSize", String.valueOf(font.getSize()));
 
-                    try (FileOutputStream themeOutput = new FileOutputStream(themeFile)) {
-                        Properties themeProps = new Properties();
-                        themeProps.setProperty("PrimaryColour1",
-                                String.format("#%02X%02X%02X", primaryColour1.getRed(),
-                                        primaryColour1.getGreen(), primaryColour1.getBlue()));
-                        themeProps.setProperty("PrimaryColour2",
-                                String.format("#%02X%02X%02X", primaryColour2.getRed(),
-                                        primaryColour2.getGreen(), primaryColour2.getBlue()));
-                        themeProps.setProperty("PrimaryColour3",
-                                String.format("#%02X%02X%02X", primaryColour3.getRed(),
-                                        primaryColour3.getGreen(), primaryColour3.getBlue()));
-                        themeProps.setProperty("SecondaryColour1",
-                                String.format("#%02X%02X%02X", secondaryColour1.getRed(),
-                                        secondaryColour1.getGreen(),
-                                        secondaryColour1.getBlue()));
-                        themeProps.setProperty("SecondaryColour2",
-                                String.format("#%02X%02X%02X", secondaryColour2.getRed(),
-                                        secondaryColour2.getGreen(),
-                                        secondaryColour2.getBlue()));
-                        themeProps.setProperty("SecondaryColour3",
-                                String.format("#%02X%02X%02X", secondaryColour3.getRed(),
-                                        secondaryColour3.getGreen(),
-                                        secondaryColour3.getBlue()));
-                        themeProps.setProperty("BlackColour",
-                                String.format("#%02X%02X%02X", blackColour.getRed(),
-                                        blackColour.getGreen(), blackColour.getBlue()));
-                        themeProps.setProperty("WhiteColour",
-                                String.format("#%02X%02X%02X", whiteColour.getRed(),
-                                        whiteColour.getGreen(), whiteColour.getBlue()));
-                        themeProps.setProperty("MenuOpacity", String.valueOf((int) (menuOpacity * 255)));
-                        themeProps.setProperty("FontName", font.getName());
-                        themeProps.setProperty("FontStyle", String.valueOf(font.getStyle()));
-                        themeProps.setProperty("FontSize", String.valueOf(font.getSize()));
-
-                        themeProps.store(themeOutput, "FlatLaf Theme Configuration");
-                    }
+                                themeProps.store(themeOutput, "FlatLaf Theme Configuration");
+                        }
                 } catch (Exception ignored) {
                 }
                 dispose();
@@ -2125,7 +2182,10 @@ public class SettingsWindow extends javax.swing.JDialog {
          // add button
                 String inputValue = JOptionPane.showInputDialog(rootPane,
                                 Main.getInstance().getLanguageBundle().getString("InteractiveWindowHintMessage"),
-                                Main.getInstance().getLanguageBundle().getString(pnlInteractiveTabs.getSelectedIndex() == 0 ? "AddInteractiveWindow" : "BlacklistInteractiveWindow"),
+                                Main.getInstance().getLanguageBundle()
+                                                .getString(pnlInteractiveTabs.getSelectedIndex() == 0
+                                                                ? "AddInteractiveWindow"
+                                                                : "BlacklistInteractiveWindow"),
                                 JOptionPane.QUESTION_MESSAGE);
                 if (inputValue != null && !inputValue.trim().isEmpty() && !inputValue.contains("/")) {
                         if (pnlInteractiveTabs.getSelectedIndex() == 0) {
@@ -2170,14 +2230,16 @@ public class SettingsWindow extends javax.swing.JDialog {
                                 // Check license for HQX filter
                                 LicenseManager licenseManager = LicenseManager.getInstance();
                                 LicenseLevel currentLevel = licenseManager.getCurrentLicenseLevel();
-                                
+
                                 if (currentLevel == LicenseLevel.NO_KEY) {
                                         // For free version, deny HQX filter access
                                         JOptionPane.showMessageDialog(this,
-                                                Main.getInstance().getLanguageBundle().getString("PremiumFeatureRequired"),
-                                                Main.getInstance().getLanguageBundle().getString("LicenseRequired"),
-                                                JOptionPane.WARNING_MESSAGE);
-                                        
+                                                        Main.getInstance().getLanguageBundle()
+                                                                        .getString("PremiumFeatureRequired"),
+                                                        Main.getInstance().getLanguageBundle()
+                                                                        .getString("LicenseRequired"),
+                                                        JOptionPane.WARNING_MESSAGE);
+
                                         // Revert to nearest neighbor filter
                                         radFilterNearest.setSelected(true);
                                         filter = "nearest";
@@ -2192,16 +2254,44 @@ public class SettingsWindow extends javax.swing.JDialog {
 
         private void sldScalingStateChanged(javax.swing.event.ChangeEvent evt)// GEN-FIRST:event_sldScalingStateChanged
         {// GEN-HEADEREND:event_sldScalingStateChanged
+                int currentValue = sldScaling.getValue();
+                double newScaling = currentValue / 10.0;
+                
+                if (sldScaling.getValueIsAdjusting()) {
+                        // 智能吸附到关键点
+                        int[] snapPoints = {5, 10, 15, 20, 25, 30, 35, 40}; // 对应0.5x到4x
+                        for (int snapPoint : snapPoints) {
+                                if (Math.abs(currentValue - snapPoint) <= 1) { // ±0.1的范围
+                                        if (currentValue != snapPoint) {
+                                                SwingUtilities.invokeLater(() -> sldScaling.setValue(snapPoint));
+                                                return;
+                                        }
+                                        break;
+                                }
+                        }
+                        
+                        // 显示实时提示
+                        sldScaling.setToolTipText(String.format("%.1fx", newScaling));
+                }
+                
+                // 更新值并处理许可证检查
                 if (!sldScaling.getValueIsAdjusting()) {
                         if (sldScaling.getValue() == 0)
                                 sldScaling.setValue(5);
                         else {
                                 scaling = sldScaling.getValue() / 10.0;
+                                
+                                // 同步更新 Spinner 值
+                                double spinnerValue = (Double) spnScaling.getValue();
+                                if (Math.abs(spinnerValue - scaling) > 0.01) {
+                                        spnScaling.setValue(scaling);
+                                }
+                                
                                 if (scaling == 2 || scaling == 3 || scaling == 4) {
                                         // Check license before enabling HQX filter
                                         LicenseManager licenseManager = LicenseManager.getInstance();
                                         LicenseLevel currentLevel = licenseManager.getCurrentLicenseLevel();
-                                        
+
                                         if (currentLevel == LicenseLevel.NO_KEY) {
                                                 // For free version, disable HQX filter
                                                 radFilterHqx.setEnabled(false);
@@ -2220,39 +2310,58 @@ public class SettingsWindow extends javax.swing.JDialog {
                                                 filter = "nearest";
                                         }
                                 }
+                                imageReloadRequired = true;
                         }
                 }
         }// GEN-LAST:event_sldScalingStateChanged
 
+        private void spnScalingStateChanged(javax.swing.event.ChangeEvent evt) {
+                double value = (Double) spnScaling.getValue();
+                
+                // 同步滑块值
+                int sliderValue = (int) (value * 10);
+                if (sldScaling.getValue() != sliderValue) {
+                        sldScaling.setValue(sliderValue);
+                }
+                
+                // 更新scaling值
+                if (Math.abs(scaling - value) > 0.01) {
+                        scaling = value;
+                        imageReloadRequired = true;
+                }
+        }
+
         private void btnFilterHelpActionPerformed(java.awt.event.ActionEvent evt) {
                 String title = Main.getInstance().getLanguageBundle().getString("FilterHelpTitle");
                 String content = Main.getInstance().getLanguageBundle().getString("FilterHelpContent");
-                
+
                 // 获取DPI缩放因子
-                float menuScaling = Float.parseFloat(Main.getInstance().getProperties().getProperty("MenuDPI", "96")) / 96;
-                
+                float menuScaling = Float.parseFloat(Main.getInstance().getProperties().getProperty("MenuDPI", "96"))
+                                / 96;
+
                 // 使用 FlatLaf 样式的对话框
                 javax.swing.JDialog dialog = new javax.swing.JDialog(this, title, true);
                 dialog.setDefaultCloseOperation(javax.swing.JDialog.DISPOSE_ON_CLOSE);
-                
+
                 // 只创建内容标签，不再重复标题
                 javax.swing.JLabel contentLabel = new javax.swing.JLabel(content);
                 contentLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
-                
+
                 // 关闭按钮根据DPI缩放
-                javax.swing.JButton closeButton = new javax.swing.JButton(Main.getInstance().getLanguageBundle().getString("Close"));
-                int buttonWidth = (int)(80 * menuScaling);
-                int buttonHeight = (int)(32 * menuScaling);
+                javax.swing.JButton closeButton = new javax.swing.JButton(
+                                Main.getInstance().getLanguageBundle().getString("Close"));
+                int buttonWidth = (int) (80 * menuScaling);
+                int buttonHeight = (int) (32 * menuScaling);
                 closeButton.setPreferredSize(new java.awt.Dimension(buttonWidth, buttonHeight));
                 closeButton.addActionListener(e -> dialog.dispose());
-                
+
                 javax.swing.JPanel buttonPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
                 buttonPanel.add(closeButton);
-                
+
                 dialog.setLayout(new java.awt.BorderLayout());
                 dialog.add(contentLabel, java.awt.BorderLayout.CENTER);
                 dialog.add(buttonPanel, java.awt.BorderLayout.SOUTH);
-                
+
                 dialog.pack();
                 dialog.setLocationRelativeTo(this);
                 dialog.setVisible(true);
@@ -2260,7 +2369,8 @@ public class SettingsWindow extends javax.swing.JDialog {
 
         private void btnWebsiteActionPerformed(java.awt.event.ActionEvent evt)// GEN-FIRST:event_btnWebsiteActionPerformed
         {// GEN-HEADEREND:event_btnWebsiteActionPerformed
-                String websiteUrl = Main.getInstance().getProperties().getProperty("WebsiteURL", "https://github.com/DCRepairCenter/DCShimeji");
+                String websiteUrl = Main.getInstance().getProperties().getProperty("WebsiteURL",
+                                "https://github.com/DCRepairCenter/DCShimeji");
                 browseToUrl(websiteUrl);
         }// GEN-LAST:event_btnWebsiteActionPerformed
 
@@ -2563,15 +2673,15 @@ public class SettingsWindow extends javax.swing.JDialog {
         private javax.swing.JCheckBox chkAlwaysShowShimejiChooser;
         private javax.swing.JCheckBox chkWindowModeEnabled;
         private javax.swing.JComboBox<String> cmbBackgroundImageMode;
-    private javax.swing.ButtonGroup grpFilter;
-    private javax.swing.JLabel lblBackground;
-    private javax.swing.JLabel lblBackgroundImage;
-    private javax.swing.JLabel lblBlackColour;
+        private javax.swing.ButtonGroup grpFilter;
+        private javax.swing.JLabel lblBackground;
+        private javax.swing.JLabel lblBackgroundImage;
+        private javax.swing.JLabel lblBlackColour;
         private javax.swing.JLabel lblDevelopedBy;
         private javax.swing.JLabel lblDimensions;
-    private javax.swing.JLabel lblFilter;
+        private javax.swing.JLabel lblFilter;
         private javax.swing.JLabel lblIcon;
-    private javax.swing.JLabel lblMenuOpacity;
+        private javax.swing.JLabel lblMenuOpacity;
         private javax.swing.JLabel lblOpacity;
         private javax.swing.JLabel lblPrimaryColour1;
         private javax.swing.JLabel lblPrimaryColour2;
@@ -2581,21 +2691,21 @@ public class SettingsWindow extends javax.swing.JDialog {
         private javax.swing.JLabel lblSecondaryColour2;
         private javax.swing.JLabel lblSecondaryColour3;
         private javax.swing.JLabel lblShimejiEE;
-    private javax.swing.JLabel lblWhiteColour;
+        private javax.swing.JLabel lblWhiteColour;
         private javax.swing.JList<String> lstInteractiveWindows;
         private javax.swing.JList<String> lstInteractiveWindowsBlacklist;
         private javax.swing.JTabbedPane pnlInteractiveTabs;
         private javax.swing.JPanel pnlWhitelistTab;
         private javax.swing.JPanel pnlBlacklistTab;
-    private javax.swing.JPanel pnlAboutButtons;
+        private javax.swing.JPanel pnlAboutButtons;
         private javax.swing.JPanel pnlBackgroundImage;
         private javax.swing.JPanel pnlBackgroundPreview;
         private javax.swing.JPanel pnlBackgroundPreviewContainer;
         private javax.swing.JPanel pnlBlackColourPreview;
         private javax.swing.JPanel pnlBlackColourPreviewContainer;
         private javax.swing.JPanel pnlFooter;
-    private javax.swing.JPanel pnlInteractiveButtons;
-    private javax.swing.JPanel pnlPrimaryColour1Preview;
+        private javax.swing.JPanel pnlInteractiveButtons;
+        private javax.swing.JPanel pnlPrimaryColour1Preview;
         private javax.swing.JPanel pnlPrimaryColour1PreviewContainer;
         private javax.swing.JPanel pnlPrimaryColour2Preview;
         private javax.swing.JPanel pnlPrimaryColour2PreviewContainer;
@@ -2608,15 +2718,16 @@ public class SettingsWindow extends javax.swing.JDialog {
         private javax.swing.JPanel pnlSecondaryColour3Preview;
         private javax.swing.JPanel pnlSecondaryColour3PreviewContainer;
         private javax.swing.JTabbedPane pnlTabs;
-    private javax.swing.JPanel pnlThemeButtons;
+        private javax.swing.JPanel pnlThemeButtons;
         private javax.swing.JPanel pnlWhiteColourPreview;
         private javax.swing.JPanel pnlWhiteColourPreviewContainer;
-    private javax.swing.JRadioButton radFilterBicubic;
+        private javax.swing.JRadioButton radFilterBicubic;
         private javax.swing.JRadioButton radFilterHqx;
         private javax.swing.JRadioButton radFilterNearest;
-    private javax.swing.JSlider sldMenuOpacity;
+        private javax.swing.JSlider sldMenuOpacity;
         private javax.swing.JSlider sldOpacity;
         private javax.swing.JSlider sldScaling;
+        private javax.swing.JSpinner spnScaling;
         private javax.swing.JSpinner spnWindowHeight;
         private javax.swing.JSpinner spnWindowWidth;
         private javax.swing.JTextField txtBackgroundColour;
