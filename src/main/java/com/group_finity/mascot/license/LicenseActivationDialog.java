@@ -22,11 +22,11 @@ public class LicenseActivationDialog extends JDialog {
     
     private static final Logger logger = Logger.getLogger(LicenseActivationDialog.class.getName());
     
-    private final Frame parentFrame;
     private JTextArea keyTextArea;
     private JButton activateButton;
     private JButton clearButton;
     private JButton cancelButton;
+    private JButton deactivateButton;
     private JLabel statusLabel;
     private JLabel currentLicenseLabel;
     private JProgressBar progressBar;
@@ -42,7 +42,6 @@ public class LicenseActivationDialog extends JDialog {
     
     public LicenseActivationDialog(Frame parent) {
         super(parent, "License Activation", true);
-        this.parentFrame = parent;
         this.languageBundle = Main.getInstance().getLanguageBundle();
         
         initComponents();
@@ -147,21 +146,11 @@ public class LicenseActivationDialog extends JDialog {
         JPanel controlPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         
-        JLabel titleLabel = new JLabel(languageBundle.getString("InternalKeyGenerator"));
-        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, DPIManager.scaleFontSize(14)));
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; 
-        
-        // 应用 DPI 缩放到边距
-        int scaledMarginLarge = DPIManager.scaleWidth(10);
-        int scaledMarginMedium = DPIManager.scaleWidth(20);
-        gbc.insets = new Insets(scaledMarginLarge, scaledMarginLarge, scaledMarginMedium, scaledMarginLarge);
-        controlPanel.add(titleLabel, gbc);
-        
         // 有效期输入
-        gbc.gridwidth = 1; 
+        int scaledMarginLarge = DPIManager.scaleWidth(10);
         int scaledMarginSmall = DPIManager.scaleWidth(5);
-        gbc.insets = new Insets(scaledMarginSmall, scaledMarginLarge, scaledMarginSmall, scaledMarginSmall);
-        gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(scaledMarginLarge, scaledMarginLarge, scaledMarginSmall, scaledMarginSmall);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
         controlPanel.add(new JLabel(languageBundle.getString("ValidityDays") + ":"), gbc);
         
         validityField = new JTextField("30", 10);
@@ -171,7 +160,8 @@ public class LicenseActivationDialog extends JDialog {
         // 生成按钮
         generateKeyButton = new JButton(languageBundle.getString("GenerateAdvancedKey"));
         generateKeyButton.addActionListener(new GenerateKeyAction());
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; 
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; 
+        int scaledMarginMedium = DPIManager.scaleWidth(20);
         gbc.insets = new Insets(scaledMarginMedium, scaledMarginLarge, scaledMarginLarge, scaledMarginLarge);
         gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.CENTER;
         controlPanel.add(generateKeyButton, gbc);
@@ -200,7 +190,7 @@ public class LicenseActivationDialog extends JDialog {
      * 创建底部按钮面板
      */
     private JPanel createBottomPanel() {
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         
         activateButton = new JButton(languageBundle.getString("ActivateLicense"));
         activateButton.addActionListener(new ActivateAction());
@@ -221,6 +211,7 @@ public class LicenseActivationDialog extends JDialog {
         });
         
         JButton deactivateButton = new JButton(languageBundle.getString("DeactivateLicense"));
+        this.deactivateButton = deactivateButton;
         deactivateButton.addActionListener(e -> {
             int result = JOptionPane.showConfirmDialog(this,
                 languageBundle.getString("DeactivateConfirmMessage"),
@@ -240,16 +231,30 @@ public class LicenseActivationDialog extends JDialog {
             }
         });
         
-        JButton copyButton = new JButton(languageBundle.getString("KeyCopiedToClipboard").replace("!", ""));
-        copyButton.addActionListener(e -> copyToClipboard());
-        
         cancelButton = new JButton(languageBundle.getString("Close"));
         cancelButton.addActionListener(e -> dispose());
+        
+        // 设置统一的按钮尺寸 - 参考 SettingsWindow 的实现
+        Dimension buttonSize = new Dimension(130, 26);
+        activateButton.setMaximumSize(buttonSize);
+        activateButton.setMinimumSize(new Dimension(95, 23));
+        activateButton.setPreferredSize(buttonSize);
+        
+        clearButton.setMaximumSize(buttonSize);
+        clearButton.setMinimumSize(new Dimension(95, 23));
+        clearButton.setPreferredSize(buttonSize);
+        
+        deactivateButton.setMaximumSize(buttonSize);
+        deactivateButton.setMinimumSize(new Dimension(95, 23));
+        deactivateButton.setPreferredSize(buttonSize);
+        
+        cancelButton.setMaximumSize(buttonSize);
+        cancelButton.setMinimumSize(new Dimension(95, 23));
+        cancelButton.setPreferredSize(buttonSize);
         
         bottomPanel.add(activateButton);
         bottomPanel.add(clearButton);
         bottomPanel.add(deactivateButton);
-        bottomPanel.add(copyButton);
         bottomPanel.add(cancelButton);
         
         return bottomPanel;
@@ -420,7 +425,15 @@ public class LicenseActivationDialog extends JDialog {
                                 "Issue Time: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "\n" +
                                 "Expiry Time: " + LocalDateTime.now().plusDays(validityDays).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "\n\n" +
                                 "Key Data:\n" + generatedKey + "\n\n" +
-                                "Status: Key generation completed successfully!");
+                                "Status: Key generation completed successfully! Key copied to clipboard.");
+                        
+                        // 自动复制密钥到剪切板
+                        try {
+                            StringSelection selection = new StringSelection(generatedKey);
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+                        } catch (Exception clipboardEx) {
+                            logger.warning("Failed to copy key to clipboard: " + clipboardEx.getMessage());
+                        }
                     });
                     
                 } catch (NumberFormatException ex) {
@@ -473,39 +486,6 @@ public class LicenseActivationDialog extends JDialog {
     }
 
     /**
-     * 复制到剪贴板
-     */
-    private void copyToClipboard() {
-        String textToCopy = "";
-        if (tabbedPane.getSelectedIndex() == 0) {
-            // 激活选项卡 - 复制输入的密钥
-            textToCopy = keyTextArea.getText().trim();
-        } else {
-            // 生成器选项卡 - 复制生成的密钥
-            String content = generatorResultArea.getText();
-            // 提取密钥部分
-            int keyStart = content.indexOf("Key Data:\n");
-            if (keyStart != -1) {
-                keyStart += "Key Data:\n".length();
-                int keyEnd = content.indexOf("\n\nStatus:", keyStart);
-                if (keyEnd != -1) {
-                    textToCopy = content.substring(keyStart, keyEnd).trim();
-                }
-            }
-        }
-        
-        if (!textToCopy.isEmpty()) {
-            StringSelection selection = new StringSelection(textToCopy);
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-            statusLabel.setText(languageBundle.getString("KeyCopiedToClipboard"));
-            statusLabel.setForeground(Color.BLUE);
-        } else {
-            statusLabel.setText("没有可复制的内容");
-            statusLabel.setForeground(Color.RED);
-        }
-    }
-    
-    /**
      * 显示许可证激活对话框
      * Show license activation dialog
      */
@@ -529,15 +509,31 @@ public class LicenseActivationDialog extends JDialog {
             (int) (preferredSize.height * menuScaling)
         ));
         
-        // 缩放按钮
-        scaleComponent(activateButton, menuScaling);
-        scaleComponent(clearButton, menuScaling);
-        scaleComponent(cancelButton, menuScaling);
-        scaleComponent(generateKeyButton, menuScaling);
+        // 按照 SettingsWindow 的方式缩放按钮
+        activateButton.setPreferredSize(new Dimension(
+            (int) (activateButton.getPreferredSize().width * menuScaling),
+            (int) (activateButton.getPreferredSize().height * menuScaling)));
+        
+        clearButton.setPreferredSize(new Dimension(
+            (int) (clearButton.getPreferredSize().width * menuScaling),
+            (int) (clearButton.getPreferredSize().height * menuScaling)));
+        
+        deactivateButton.setPreferredSize(new Dimension(
+            (int) (deactivateButton.getPreferredSize().width * menuScaling),
+            (int) (deactivateButton.getPreferredSize().height * menuScaling)));
+        
+        cancelButton.setPreferredSize(new Dimension(
+            (int) (cancelButton.getPreferredSize().width * menuScaling),
+            (int) (cancelButton.getPreferredSize().height * menuScaling)));
+        
+        if (generateKeyButton != null) {
+            generateKeyButton.setPreferredSize(new Dimension(
+                (int) (generateKeyButton.getPreferredSize().width * menuScaling),
+                (int) (generateKeyButton.getPreferredSize().height * menuScaling)));
+        }
         
         // 缩放文本组件
         if (keyTextArea != null) {
-            scaleComponent(keyTextArea, menuScaling);
             Font currentFont = keyTextArea.getFont();
             if (currentFont != null) {
                 keyTextArea.setFont(currentFont.deriveFont(currentFont.getSize() * menuScaling));
@@ -545,41 +541,19 @@ public class LicenseActivationDialog extends JDialog {
         }
         
         if (validityField != null) {
-            scaleComponent(validityField, menuScaling);
+            validityField.setPreferredSize(new Dimension(
+                (int) (validityField.getPreferredSize().width * menuScaling),
+                (int) (validityField.getPreferredSize().height * menuScaling)));
         }
         
         if (generatorResultArea != null) {
-            scaleComponent(generatorResultArea, menuScaling);
             Font currentFont = generatorResultArea.getFont();
             if (currentFont != null) {
                 generatorResultArea.setFont(currentFont.deriveFont(currentFont.getSize() * menuScaling));
             }
         }
         
-        // 缩放标签
-        scaleComponent(statusLabel, menuScaling);
-        scaleComponent(currentLicenseLabel, menuScaling);
-        
-        // 缩放进度条
-        if (progressBar != null) {
-            scaleComponent(progressBar, menuScaling);
-        }
-        
         // 重新打包对话框
         pack();
-    }
-    
-    /**
-     * 缩放单个组件
-     * Scale individual component
-     */
-    private void scaleComponent(JComponent component, float scaling) {
-        if (component != null) {
-            Dimension size = component.getPreferredSize();
-            component.setPreferredSize(new Dimension(
-                (int) (size.width * scaling),
-                (int) (size.height * scaling)
-            ));
-        }
     }
 }
