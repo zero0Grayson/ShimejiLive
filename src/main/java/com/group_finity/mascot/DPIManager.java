@@ -69,6 +69,11 @@ public class DPIManager {
      */
     private static double getSystemScaleFactor() {
         try {
+            // macOS Retina 显示器特殊处理
+            if (isMacOS()) {
+                return getMacOSScaleFactor();
+            }
+            
             // 尝试获取 Windows 系统缩放
             GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment()
                     .getDefaultScreenDevice().getDefaultConfiguration();
@@ -84,6 +89,50 @@ public class DPIManager {
         // 备用方法：基于 DPI 计算
         int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
         return dpi / 96.0;
+    }
+
+    /**
+     * macOS Retina 显示器特殊处理
+     */
+    private static double getMacOSScaleFactor() {
+        try {
+            // 获取 macOS 的实际缩放因子
+            GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            GraphicsConfiguration config = device.getDefaultConfiguration();
+            java.awt.geom.AffineTransform transform = config.getDefaultTransform();
+            
+            double scaleFactor = Math.max(transform.getScaleX(), transform.getScaleY());
+            log.info("macOS scale factor detected: " + scaleFactor);
+            return scaleFactor;
+        } catch (Exception e) {
+            // 备用方法：检查系统属性
+            String retinaFactor = System.getProperty("apple.awt.contentScaleFactor");
+            if (retinaFactor != null) {
+                try {
+                    double factor = Double.parseDouble(retinaFactor);
+                    log.info("macOS scale factor from system property: " + factor);
+                    return factor;
+                } catch (NumberFormatException nfe) {
+                    log.warning("Invalid apple.awt.contentScaleFactor value: " + retinaFactor);
+                }
+            }
+            
+            // 最后的备用方法：检查屏幕分辨率
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int screenRes = Toolkit.getDefaultToolkit().getScreenResolution();
+            
+            // 典型的 Retina 显示器特征：高分辨率 + 高 DPI
+            if (screenSize.width >= 2560 && screenRes >= 144) {
+                log.info("Retina display detected by resolution, using 2.0 scale factor");
+                return 2.0;
+            } else if (screenSize.width >= 1920 && screenRes >= 120) {
+                log.info("High DPI display detected, using 1.5 scale factor");
+                return 1.5;
+            }
+            
+            log.warning("Failed to detect macOS scale factor, using default: " + e.getMessage());
+            return 1.0;
+        }
     }
     
     /**
@@ -204,5 +253,12 @@ public class DPIManager {
         } catch (Exception e) {
             log.warning("DPI 强制更新失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 检查当前操作系统是否为 macOS
+     */
+    private static boolean isMacOS() {
+        return System.getProperty("os.name").toLowerCase().contains("mac");
     }
 }

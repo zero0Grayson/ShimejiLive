@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Uses the Accessibility API to obtain environment information that is difficult to obtain using Java.
@@ -26,6 +27,13 @@ import java.util.Set;
  * @author nonowarn
  */
 class MacEnvironment extends Environment {
+
+    private static final Logger log = Logger.getLogger(MacEnvironment.class.getName());
+
+    static {
+        // macOS 版本优化
+        optimizeForMacOSVersion();
+    }
 
     /**
      * On Mac, you can take the active window, so Shimeji will react to it.
@@ -71,7 +79,7 @@ class MacEnvironment extends Environment {
 
         // XXX: Is error checking necessary other than here?
         if (carbonEx.AXUIElementCopyAttributeValue(
-                application, kAXFocusedWindow, windowp) == carbonEx.kAXErrorSuccess) {
+                application, kAXFocusedWindow, windowp) == CarbonExtra.kAXErrorSuccess) {
             AXUIElementRef window = new AXUIElementRef();
             window.setPointer(windowp.getValue());
             ret = getRectOfWindow(window);
@@ -100,7 +108,7 @@ class MacEnvironment extends Environment {
 
         carbonEx.AXUIElementCopyAttributeValue(window, kAXPosition, valuep);
         axvalue.setPointer(valuep.getValue());
-        carbonEx.AXValueGetValue(axvalue, carbonEx.kAXValueCGPointType, position.getPointer());
+        carbonEx.AXValueGetValue(axvalue, CarbonExtra.kAXValueCGPointType, position.getPointer());
         position.read();
 
         return position;
@@ -113,7 +121,7 @@ class MacEnvironment extends Environment {
 
         carbonEx.AXUIElementCopyAttributeValue(window, kAXSize, valuep);
         axvalue.setPointer(valuep.getValue());
-        carbonEx.AXValueGetValue(axvalue, carbonEx.kAXValueCGSizeType, size.getPointer());
+        carbonEx.AXValueGetValue(axvalue, CarbonExtra.kAXValueCGSizeType, size.getPointer());
         size.read();
 
         return size;
@@ -126,7 +134,7 @@ class MacEnvironment extends Environment {
         PointerByReference windowp = new PointerByReference();
 
         if (carbonEx.AXUIElementCopyAttributeValue(
-                application, kAXFocusedWindow, windowp) == carbonEx.kAXErrorSuccess) {
+                application, kAXFocusedWindow, windowp) == CarbonExtra.kAXErrorSuccess) {
             AXUIElementRef window = new AXUIElementRef();
             window.setPointer(windowp.getValue());
             moveWindow(window, point.x, point.y);
@@ -186,7 +194,7 @@ class MacEnvironment extends Environment {
         CGPoint position = new CGPoint(x, y);
         position.write();
         AXValueRef axvalue = carbonEx.AXValueCreate(
-                carbonEx.kAXValueCGPointType, position.getPointer());
+                CarbonExtra.kAXValueCGPointType, position.getPointer());
         carbonEx.AXUIElementSetAttributeValue(window, kAXPosition, axvalue);
     }
 
@@ -245,7 +253,7 @@ class MacEnvironment extends Environment {
     private static String getDockOrientation() {
         CFTypeRef orientationRef =
                 carbonEx.CFPreferencesCopyValue(
-                        kOrientation, kDock, carbonEx.kCurrentUser, carbonEx.kAnyHost);
+                        kOrientation, kDock, CarbonExtra.kCurrentUser, CarbonExtra.kAnyHost);
 
         // There are environments where CFPreferencesCopyValue returns null
         if (orientationRef == null) {
@@ -392,5 +400,38 @@ class MacEnvironment extends Environment {
 
     @Override
     public void dispose() {
+    }
+
+    /**
+     * 检测 macOS 版本并优化行为
+     */
+    private static void optimizeForMacOSVersion() {
+        try {
+            String osVersion = System.getProperty("os.version");
+            String[] versionParts = osVersion.split("\\.");
+            int majorVersion = Integer.parseInt(versionParts[0]);
+            
+            log.info("Detected macOS version: " + osVersion + " (major: " + majorVersion + ")");
+            
+            if (majorVersion >= 20) { // macOS Big Sur (11.0) - Darwin version 20+
+                // 启用新的窗口管理 API
+                System.setProperty("apple.awt.application.useCustomCursor", "true");
+                log.info("Enabled Big Sur+ optimizations");
+            }
+            
+            if (majorVersion >= 21) { // macOS Monterey (12.0) - Darwin version 21+
+                // 优化 Metal 渲染
+                System.setProperty("sun.java2d.metal", "true");
+                log.info("Enabled Monterey+ Metal rendering");
+            }
+            
+            if (majorVersion >= 22) { // macOS Ventura (13.0) - Darwin version 22+
+                // 启用模板图像
+                System.setProperty("apple.awt.enableTemplateImages", "true");
+                log.info("Enabled Ventura+ template images");
+            }
+        } catch (Exception e) {
+            log.warning("Failed to detect macOS version: " + e.getMessage());
+        }
     }
 }

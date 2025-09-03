@@ -887,6 +887,28 @@
                                     </arguments>
                                 </configuration>
                             </execution>
+                            <!-- macOS 优化：设置权限和复制启动脚本 -->
+                            <execution>
+                                <id>macos-optimization</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>sh</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>
+                                            # 设置应用执行权限
+                                            chmod +x jpackage-macos-app/Shimeji-ee.app/Contents/MacOS/Shimeji-ee || true;
+                                            chmod +x jpackage-macos-dmg/Shimeji-ee.app/Contents/MacOS/Shimeji-ee || true;
+                                            
+                                            echo "macOS 权限设置完成"
+                                        </argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>

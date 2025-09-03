@@ -35,6 +35,18 @@
     <key>NSSystemExtensionUsageDescription</key>
     <string>Shimeji-ee needs system extension access to display desktop mascots.</string>
     
+    <!-- 相机权限 -->
+    <key>NSCameraUsageDescription</key>
+    <string>Shimeji-ee may need camera access for advanced interaction features.</string>
+
+    <!-- 麦克风权限 -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Shimeji-ee may need microphone access for voice interaction features.</string>
+
+    <!-- 桌面文件夹权限 (macOS Ventura+) -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Shimeji-ee needs access to place mascot files on desktop.</string>
+    
     <!-- 允许应用在后台运行 -->
     <key>LSUIElement</key>
     <false/>

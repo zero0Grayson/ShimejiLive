@@ -37,7 +37,6 @@ import com.group_finity.mascot.exception.ConfigurationException;
 import com.group_finity.mascot.image.ImagePairs;
 import com.group_finity.mascot.imagesetchooser.ImageSetChooser;
 import com.group_finity.mascot.sound.Sounds;
-import com.group_finity.mascot.win.AutoStartManager;
 import com.joconner.i18n.Utf8ResourceBundleControl;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
@@ -1573,6 +1572,57 @@ public class Main {
     private void showInfo(String message) {
         if (this.trayIcon != null) {
             this.trayIcon.displayMessage("Shimeji-ee", message, TrayIcon.MessageType.INFO);
+        }
+    }
+
+    /**
+     * 平台无关的自动启动管理器
+     */
+    private static class AutoStartManager {
+        /**
+         * 检查是否已设置开机自启动
+         */
+        public static boolean isAutoStartEnabled() {
+            try {
+                if (isMacOS()) {
+                    return com.group_finity.mascot.mac.AutoStartManager.isAutoStartEnabled();
+                } else if (isWindows()) {
+                    return com.group_finity.mascot.win.AutoStartManager.isAutoStartEnabled();
+                } else {
+                    // Linux 或其他平台暂时不支持
+                    return false;
+                }
+            } catch (Exception e) {
+                log.log(Level.WARNING, "Failed to check auto-start status", e);
+                return false;
+            }
+        }
+
+        /**
+         * 设置开机自启动
+         */
+        public static boolean setAutoStart(boolean enable) {
+            try {
+                if (isMacOS()) {
+                    return com.group_finity.mascot.mac.AutoStartManager.setAutoStart(enable);
+                } else if (isWindows()) {
+                    return com.group_finity.mascot.win.AutoStartManager.setAutoStart(enable);
+                } else {
+                    // Linux 或其他平台暂时不支持
+                    log.warning("Auto-start is not supported on this platform");
+                    return false;
+                }
+            } catch (Exception e) {
+                log.log(Level.WARNING, "Failed to set auto-start: " + enable, e);
+                return false;
+            }
+        }
+
+        /**
+         * 检查是否为 Windows 系统
+         */
+        private static boolean isWindows() {
+            return System.getProperty("os.name").toLowerCase().contains("win");
         }
     }
 }
