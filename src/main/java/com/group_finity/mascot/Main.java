@@ -36,6 +36,10 @@ import com.group_finity.mascot.exception.CantBeAliveException;
 import com.group_finity.mascot.exception.ConfigurationException;
 import com.group_finity.mascot.image.ImagePairs;
 import com.group_finity.mascot.imagesetchooser.ImageSetChooser;
+import com.group_finity.mascot.license.LicenseManager;
+import com.group_finity.mascot.license.LicenseChecker;
+import com.group_finity.mascot.license.LicenseLevel;
+import com.group_finity.mascot.license.LicenseActivationDialog;
 import com.group_finity.mascot.sound.Sounds;
 import com.joconner.i18n.Utf8ResourceBundleControl;
 import com.formdev.flatlaf.FlatLaf;
@@ -456,6 +460,13 @@ public class Main {
 
         // Create the tray icon
         createTrayIcon();
+
+        // Initialize license system and show warning if needed
+        LicenseManager licenseManager = LicenseManager.getInstance();
+        log.info("License System Initialized - Current Level: " + licenseManager.getCurrentLicenseLevel().getDisplayName());
+        
+        // Show license expiration warning if needed
+        LicenseChecker.showExpirationWarningIfNeeded();
 
         // Create the first mascot
         for (String imageSet : imageSets) {
@@ -1051,6 +1062,15 @@ public class Main {
                             }
                         });
 
+                        // License button
+                        final JButton btnLicense = new JButton();
+                        Main.this.updateLicenseButtonText(btnLicense);
+                        btnLicense.addActionListener(e -> {
+                            form.dispose();
+                            LicenseActivationDialog.showDialog(frame, languageBundle);
+                            Main.this.updateLicenseButtonText(btnLicense); // Update button text after activation
+                        });
+
                         JButton btnPauseAll = new JButton(
                                 getManager().isPaused() ? languageBundle.getString("ResumeAnimations")
                                         : languageBundle.getString("PauseAnimations"));
@@ -1090,6 +1110,8 @@ public class Main {
                         gridBag.gridy++;
                         panel.add(btnAutoStart, gridBag);
                         gridBag.gridy++;
+                        panel.add(btnLicense, gridBag);
+                        gridBag.gridy++;
                         panel.add(new JSeparator(), gridBag);
                         gridBag.gridy++;
                         panel.add(btnPauseAll, gridBag);
@@ -1105,7 +1127,7 @@ public class Main {
                         setupTrayMenuAutoSizing(form, panel, scaling, icon, event,
                             btnCallShimeji, btnFollowCursor, btnReduceToOne, btnRestoreWindows,
                             btnAllowedBehaviours, btnChooseShimeji, btnSettings, btnLanguage,
-                            btnAutoStart, btnPauseAll, btnDismissAll);
+                            btnAutoStart, btnLicense, btnPauseAll, btnDismissAll);
                         form.setMinimumSize(form.getSize());
                     } else if (event.getButton() == MouseEvent.BUTTON1) {
                         createMascot();
@@ -1564,6 +1586,41 @@ public class Main {
             languageBundle.getString("DisableAutoStart") : 
             languageBundle.getString("EnableAutoStart");
         btnAutoStart.setText(text);
+    }
+    
+    /**
+     * 更新许可证按钮的文本
+     */
+    private void updateLicenseButtonText(JButton btnLicense) {
+        LicenseManager manager = LicenseManager.getInstance();
+        LicenseLevel currentLevel = manager.getCurrentLicenseLevel();
+        
+        String text;
+        switch (currentLevel) {
+            case NO_KEY:
+                text = languageBundle.getString("License") + " - " + languageBundle.getString("FreeVersion");
+                break;
+            case ADVANCED_KEY:
+                long daysRemaining = manager.getDaysRemaining();
+                text = String.format("%s - %s (%d %s)", 
+                    languageBundle.getString("License"),
+                    languageBundle.getString("AdvancedVersion"),
+                    daysRemaining,
+                    languageBundle.getString("DaysRemaining").toLowerCase());
+                break;
+            case SPECIAL_KEY:
+                long specialDaysRemaining = manager.getDaysRemaining();
+                text = String.format("%s - %s (%d %s)", 
+                    languageBundle.getString("License"),
+                    languageBundle.getString("DeveloperVersion"),
+                    specialDaysRemaining,
+                    languageBundle.getString("DaysRemaining").toLowerCase());
+                break;
+            default:
+                text = languageBundle.getString("License");
+                break;
+        }
+        btnLicense.setText(text);
     }
     
     /**

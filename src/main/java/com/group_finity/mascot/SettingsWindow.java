@@ -30,6 +30,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.LookAndFeel;
 import com.formdev.flatlaf.FlatLaf;
+import com.group_finity.mascot.license.LicenseManager;
+import com.group_finity.mascot.license.LicenseLevel;
 
 /**
  * @author Kilkakon
@@ -2164,9 +2166,26 @@ public class SettingsWindow extends javax.swing.JDialog {
 
                         if (source == radFilterNearest)
                                 filter = "nearest";
-                        else if (source == radFilterHqx)
-                                filter = "hqx";
-                        else
+                        else if (source == radFilterHqx) {
+                                // Check license for HQX filter
+                                LicenseManager licenseManager = LicenseManager.getInstance();
+                                LicenseLevel currentLevel = licenseManager.getCurrentLicenseLevel();
+                                
+                                if (currentLevel == LicenseLevel.NO_KEY) {
+                                        // For free version, deny HQX filter access
+                                        JOptionPane.showMessageDialog(this,
+                                                Main.getInstance().getLanguageBundle().getString("PremiumFeatureRequired"),
+                                                Main.getInstance().getLanguageBundle().getString("LicenseRequired"),
+                                                JOptionPane.WARNING_MESSAGE);
+                                        
+                                        // Revert to nearest neighbor filter
+                                        radFilterNearest.setSelected(true);
+                                        filter = "nearest";
+                                } else {
+                                        // Advanced or Special license - allow HQX
+                                        filter = "hqx";
+                                }
+                        } else
                                 filter = "bicubic";
                 }
         }// GEN-LAST:event_radFilterItemStateChanged
@@ -2179,11 +2198,26 @@ public class SettingsWindow extends javax.swing.JDialog {
                         else {
                                 scaling = sldScaling.getValue() / 10.0;
                                 if (scaling == 2 || scaling == 3 || scaling == 4) {
-                                        radFilterHqx.setEnabled(true);
+                                        // Check license before enabling HQX filter
+                                        LicenseManager licenseManager = LicenseManager.getInstance();
+                                        LicenseLevel currentLevel = licenseManager.getCurrentLicenseLevel();
+                                        
+                                        if (currentLevel == LicenseLevel.NO_KEY) {
+                                                // For free version, disable HQX filter
+                                                radFilterHqx.setEnabled(false);
+                                                if (filter.equals("hqx")) {
+                                                        radFilterNearest.setSelected(true);
+                                                        filter = "nearest";
+                                                }
+                                        } else {
+                                                // Advanced or Special license - enable HQX
+                                                radFilterHqx.setEnabled(true);
+                                        }
                                 } else {
                                         radFilterHqx.setEnabled(false);
                                         if (filter.equals("hqx")) {
                                                 radFilterNearest.setSelected(true);
+                                                filter = "nearest";
                                         }
                                 }
                         }
